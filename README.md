@@ -59,7 +59,7 @@ reviewable PR or posts a human escalation. It never merges.
 For seeded demonstrations, include a trusted metadata line in the issue:
 
 ```text
-Agent base branch: `demo/live-backend-bug`
+Agent base branch: `demo/replay-backend-bug`
 ```
 
 See [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) for the complete procedure.

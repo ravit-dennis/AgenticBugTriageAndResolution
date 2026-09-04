@@ -20,7 +20,8 @@ diagram only to orient the viewer.
 
 ## 1:30–3:30 — Backend bug
 
-- Open `ravit-dennis/AgenticBugTriageAndResolution#7`.
+- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#7`, or
+  start a fresh recording with unlabelled replay issue #13.
 - Show the reproduction command and expected/actual behavior.
 - Add or show the `agent:triage` label.
 - Open the Actions run and show the live stages.
@@ -33,8 +34,8 @@ diagram only to orient the viewer.
 
 ## 3:30–5:20 — Frontend bug and memory
 
-- Open `ravit-dennis/AgenticBugTriageAndResolution#8` and its generated repair
-  PR.
+- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#8` and
+  PR #11, or use unlabelled replay issue #14 for a fresh run.
 - Show the one-line state reset after a rejected update.
 - Point out memory episode `[1]` in the evidence.
 - Explain that memory supplied a prior repair pattern but did not replace

@@ -10,6 +10,8 @@ TRUSTED_BASE_BRANCHES = frozenset(
         "main",
         "demo/live-backend-bug",
         "demo/live-frontend-bug",
+        "demo/replay-backend-bug",
+        "demo/replay-frontend-bug",
     }
 )
 

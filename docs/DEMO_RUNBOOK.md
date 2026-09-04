@@ -30,11 +30,16 @@ frontend build.
 
 ## Hosted GitHub demonstration
 
-Prepared, intentionally unlabelled demonstrations:
+Completed hosted evidence:
 
 - Backend: `ravit-dennis/AgenticBugTriageAndResolution#7`
 - Frontend: `ravit-dennis/AgenticBugTriageAndResolution#8`
 - Human escalation: `ravit-dennis/AgenticBugTriageAndResolution#6`
+
+Fresh, intentionally unlabelled video replays:
+
+- Backend: `ravit-dennis/AgenticBugTriageAndResolution#13`
+- Frontend: `ravit-dennis/AgenticBugTriageAndResolution#14`
 
 To run one:
 
@@ -42,7 +47,7 @@ To run one:
 2. For a seeded replay, include one trusted metadata line:
 
    ```text
-   Agent base branch: `demo/live-backend-bug`
+   Agent base branch: `demo/replay-backend-bug`
    ```
 
 3. Review the issue content as the repository owner.
@@ -74,7 +79,7 @@ Live runs call Anthropic and modify the checked-out branch. Use a disposable
 worktree:
 
 ```powershell
-git worktree add ..\agent-demo demo/live-backend-bug
+git worktree add ..\agent-demo demo/replay-backend-bug
 Set-Location ..\agent-demo
 Copy-Item ..\AgenticBugTriageAndResolution\.env .env
 python -m pip install -e ".[dev]"

@@ -9,9 +9,9 @@ def test_hosted_run_defaults_to_main() -> None:
 
 
 def test_hosted_run_accepts_demo_live_branch() -> None:
-    body = "Agent base branch: `demo/live-backend-bug`"
+    body = "Agent base branch: `demo/replay-backend-bug`"
 
-    assert extract_base_branch(body) == "demo/live-backend-bug"
+    assert extract_base_branch(body) == "demo/replay-backend-bug"
 
 
 def test_agent_branch_name_is_stable_per_issue() -> None:

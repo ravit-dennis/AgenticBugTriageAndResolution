@@ -154,6 +154,27 @@ class RepositoryTools:
                 f"Patch could not be applied: {completed.stderr.strip()}"
             )
 
+    def apply_edits(self, edits: list[tuple[str, str, str]]) -> None:
+        if not edits:
+            raise ToolPolicyError("At least one edit is required")
+
+        updated_files: dict[Path, str] = {}
+        for relative_path, old_text, new_text in edits:
+            path = self._resolve(relative_path)
+            content = updated_files.get(
+                path,
+                path.read_text(encoding="utf-8"),
+            )
+            occurrences = content.count(old_text)
+            if occurrences != 1:
+                raise ToolPolicyError(
+                    f"Expected one match in {relative_path}, found {occurrences}"
+                )
+            updated_files[path] = content.replace(old_text, new_text, 1)
+
+        for path, content in updated_files.items():
+            path.write_text(content, encoding="utf-8")
+
     def _resolve(self, relative_path: str) -> Path:
         path = (self.root / relative_path).resolve()
         if path != self.root and self.root not in path.parents:

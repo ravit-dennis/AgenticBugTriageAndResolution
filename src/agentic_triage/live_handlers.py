@@ -28,9 +28,15 @@ class SearchPlan(BaseModel):
 
 
 class RepairProposal(BaseModel):
-    unified_diff: str = Field(min_length=1)
+    edits: list["FileEdit"] = Field(min_length=1, max_length=6)
     summary: str = Field(min_length=1)
     regression_test: str = Field(min_length=1)
+
+
+class FileEdit(BaseModel):
+    path: str = Field(min_length=1)
+    old_text: str = Field(min_length=1)
+    new_text: str
 
 
 class LocalWorkflowHandlers:
@@ -178,10 +184,11 @@ class LocalWorkflowHandlers:
                 reasoning_blocked=state.repair_attempts > 1,
             ),
             system=(
-                "Produce the smallest safe repair as a standard unified git diff. "
-                "Use repository-root paths prefixed with target-app/. Do not modify "
-                "the regression test merely to weaken its assertion. The diff must "
-                "apply with `git apply`."
+                "Produce the smallest safe repair as exact text replacements. "
+                "Use repository-root paths prefixed with target-app/. Each old_text "
+                "must be copied exactly from the supplied file and identify one "
+                "unique contiguous block. Do not modify the regression test merely "
+                "to weaken its assertion."
             ),
             payload={
                 "issue": state.issue.model_dump(),
@@ -193,7 +200,12 @@ class LocalWorkflowHandlers:
             response_model=RepairProposal,
             reason=f"repair attempt {state.repair_attempts}",
         )
-        self.tools.apply_patch(proposal.unified_diff)
+        self.tools.apply_edits(
+            [
+                (edit.path, edit.old_text, edit.new_text)
+                for edit in proposal.edits
+            ]
+        )
         changed_files, changed_lines = self._diff_stats()
         return RepairResult(
             changed_files=changed_files,

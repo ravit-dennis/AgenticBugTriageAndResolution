@@ -54,3 +54,10 @@ def test_rejects_patch_that_escapes_repository(repository_root) -> None:
 
     with pytest.raises(ToolPolicyError, match="escapes repository"):
         tools.apply_patch(patch)
+
+
+def test_normalizes_fenced_patch_and_final_newline() -> None:
+    patch = "```diff\ndiff --git a/file b/file\n--- a/file\n+++ b/file\n```"
+
+    assert RepositoryTools._normalize_patch(patch).endswith("\n")
+    assert "```" not in RepositoryTools._normalize_patch(patch)

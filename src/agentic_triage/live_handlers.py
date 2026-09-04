@@ -174,6 +174,7 @@ class LocalWorkflowHandlers:
                 "reproduction": state.reproduction.model_dump(),
                 "diagnosis": state.diagnosis.model_dump(),
                 "files": self._file_context(state.context.files),
+                "prior_attempts": state.messages,
             },
             response_model=RepairProposal,
             reason=f"repair attempt {state.repair_attempts}",

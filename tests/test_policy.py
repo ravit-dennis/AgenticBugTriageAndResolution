@@ -26,6 +26,7 @@ def diagnosis(
     confidence: float = 0.9,
     risk: Risk = Risk.LOW,
     security_sensitive: bool = False,
+    cross_layer: bool = False,
 ) -> Diagnosis:
     return Diagnosis(
         root_cause="Filter condition is inverted",
@@ -34,6 +35,7 @@ def diagnosis(
         risk=risk,
         confidence=confidence,
         security_sensitive=security_sensitive,
+        cross_layer=cross_layer,
     )
 
 
@@ -51,6 +53,16 @@ def test_medium_confidence_bug_opens_draft_pr() -> None:
     action = choose_autonomy_action(
         reproduction(),
         diagnosis(confidence=0.7),
+        AgentSettings(),
+    )
+
+    assert action is AutonomyAction.DRAFT_PR
+
+
+def test_cross_layer_bug_requires_draft_approval() -> None:
+    action = choose_autonomy_action(
+        reproduction(),
+        diagnosis(cross_layer=True),
         AgentSettings(),
     )
 

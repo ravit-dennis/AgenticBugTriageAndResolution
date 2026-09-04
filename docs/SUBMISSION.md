@@ -75,6 +75,13 @@ repairs changed one implementation file and passed the exact regression test.
 The repository also passes 71 Python tests, 15 target-application tests, and the
 frontend production build in GitHub Actions.
 
+The final hosted demonstration then processed three owner-approved issues on
+clean Ubuntu runners. Backend issue #7 opened one-file repair PR #10 in 19.246
+seconds for $0.008568. Frontend issue #8 opened one-file repair PR #11 in
+19.997 seconds for $0.014259. The production-only data-loss report in issue #6
+was not reproducible; the agent classified it high-risk at 35% confidence,
+spent $0.003053, posted a human-decision request, and published no branch.
+
 The primary business metric is time from a qualified bug report to a validated
 repair candidate without increasing escaped regressions. Supporting metrics are
 reproduction rate, autonomous completion, first-patch success, escalation rate,

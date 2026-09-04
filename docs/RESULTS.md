@@ -49,12 +49,35 @@ sanitized, reviewable record.
 - The agent created localized one-file repairs and did not merge its own pull
   requests.
 
+## Hosted GitHub evidence
+
+After the local development runs, the complete issue-triggered workflow was
+executed on clean GitHub-hosted Ubuntu runners.
+
+| Issue | Outcome | Elapsed | Input | Output | Cost | Publication |
+|---|---|---:|---:|---:|---:|---|
+| `ravit-dennis/AgenticBugTriageAndResolution#7` | Completed | 19.246s | 6,103 | 493 | $0.008568 | PR #10 |
+| `ravit-dennis/AgenticBugTriageAndResolution#8` | Completed | 19.997s | 10,599 | 732 | $0.014259 | PR #11 |
+| `ravit-dennis/AgenticBugTriageAndResolution#6` | Human escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
+
+Hosted workflow runs:
+
+- Backend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881688029
+- Frontend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881840872
+- HITL: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881992652
+
+The backend and frontend runs used Haiku only, selected two context files, made
+one repair attempt, passed the unchanged reproduction plus all 15 target-app
+tests, and produced one-file PRs. The HITL run classified the production-only
+report as high risk with 35% confidence and stopped before repair.
+
 ## Development spend
 
-Seven persisted live workflow attempts, including failed and escalated
+Seven persisted local workflow attempts, including failed and escalated
 development runs, recorded $0.116006. The initial API connectivity check cost
-$0.000128, producing a locally measured total of $0.116134. The Anthropic
-billing console remains authoritative for any request not persisted locally.
+$0.000128. The three hosted demonstrations added $0.025880, producing a measured
+total of $0.142014. The Anthropic billing console remains authoritative for any
+request not represented by these records.
 
 ## Business and operational metrics
 

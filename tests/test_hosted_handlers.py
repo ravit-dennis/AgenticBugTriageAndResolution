@@ -80,7 +80,6 @@ def test_escalation_posts_human_decision_without_branch(tmp_path, run_state) -> 
     handler.escalate(run_state, "Reproduction policy requires review")
 
     assert (42, ["agent:needs-information"]) in handler.github.added
-    assert (42, "agent:running") in handler.github.removed
     assert "Human decision required" in handler.github.comments[0][2]
 
 

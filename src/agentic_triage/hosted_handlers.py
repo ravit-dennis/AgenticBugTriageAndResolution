@@ -82,11 +82,6 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
             "base_branch": self.base_branch,
         }
         self.repository.save_run(state)
-        self.github.add_labels(
-            state.issue.number,
-            ["agent:resolved"],
-        )
-        self.github.remove_label(state.issue.number, "agent:running")
         self.github.upsert_issue_comment(
             state.issue.number,
             marker=f"agentic-triage-run:{state.run_id}",
@@ -99,7 +94,6 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
             state.issue.number,
             ["agent:needs-information"],
         )
-        self.github.remove_label(state.issue.number, "agent:running")
         self.github.upsert_issue_comment(
             state.issue.number,
             marker=f"agentic-triage-run:{state.run_id}",
@@ -108,7 +102,6 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
 
     def report_failure(self, state: AgentRunState, error: Exception) -> None:
         self.github.add_labels(state.issue.number, ["agent:failed"])
-        self.github.remove_label(state.issue.number, "agent:running")
         publication = state.metadata.get("publication") or {}
         status = publication.get("status")
         if status == "pull_request_created":

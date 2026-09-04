@@ -104,7 +104,7 @@ class AnthropicGateway:
 
         text = self._text_content(response)
         try:
-            return response_model.model_validate_json(text)
+            return response_model.model_validate_json(self._unwrap_json(text))
         except ValueError as error:
             raise ModelResponseError(
                 f"Invalid structured response for {response_model.__name__}: {error}"
@@ -120,6 +120,15 @@ class AnthropicGateway:
         if not text_blocks:
             raise ModelResponseError("Anthropic response contained no text")
         return "".join(text_blocks).strip()
+
+    @staticmethod
+    def _unwrap_json(text: str) -> str:
+        if not text.startswith("```"):
+            return text
+        lines = text.splitlines()
+        if len(lines) < 3 or lines[-1].strip() != "```":
+            raise ModelResponseError("Malformed fenced JSON response")
+        return "\n".join(lines[1:-1]).strip()
 
     @staticmethod
     def _estimate_cost(

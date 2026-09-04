@@ -82,6 +82,25 @@ def test_rejects_invalid_structured_response() -> None:
         )
 
 
+def test_accepts_single_markdown_fenced_json_object() -> None:
+    model_gateway, _ = gateway(
+        FakeMessages(
+            '```json\n{"answer":"bounded context","confidence":0.8}\n```'
+        )
+    )
+
+    answer = model_gateway.complete_json(
+        stage=Stage.CONTEXT,
+        tier=ModelTier.HAIKU,
+        system="Plan context.",
+        payload={},
+        response_model=StructuredAnswer,
+        reason="context planning",
+    )
+
+    assert answer.answer == "bounded context"
+
+
 def test_rejects_input_over_configured_limit() -> None:
     settings = AgentSettings(
         limits=AgentLimits(max_input_tokens_per_call=10)

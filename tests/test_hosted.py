@@ -14,6 +14,12 @@ def test_hosted_run_accepts_demo_live_branch() -> None:
     assert extract_base_branch(body) == "demo/replay-backend-bug"
 
 
+def test_hosted_run_accepts_pagination_contract_replay_branch() -> None:
+    body = "Agent base branch: `demo/replay-pagination-contract-bug`"
+
+    assert extract_base_branch(body) == "demo/replay-pagination-contract-bug"
+
+
 def test_agent_branch_name_is_stable_per_issue() -> None:
     assert agent_branch_name(42) == "agent/issue-42"
 

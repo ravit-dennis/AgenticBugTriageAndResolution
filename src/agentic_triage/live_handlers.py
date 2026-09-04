@@ -131,7 +131,14 @@ class LocalWorkflowHandlers:
             system=(
                 "Diagnose the reproduced bug from the issue, failing test output, "
                 "and bounded source context. Identify the specific root cause and "
-                "classify severity, change risk, confidence, and safety flags."
+                "classify severity, change risk, confidence, and safety flags. "
+                "Severity measures user impact. Risk measures the danger and blast "
+                "radius of implementing the likely fix: use low for a localized, "
+                "well-tested logic correction; medium for several coupled files or "
+                "uncertain behavior; and high only for security-sensitive behavior, "
+                "data migrations, destructive operations, broad architectural "
+                "changes, or substantial uncertainty. Set cross_layer only when the "
+                "root cause or required repair spans multiple application layers."
             ),
             payload={
                 "issue": state.issue.model_dump(),

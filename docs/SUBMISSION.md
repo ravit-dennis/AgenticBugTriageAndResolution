@@ -104,21 +104,49 @@ against manual triage over several weeks.
 
 ## What I would build with one month
 
-First, I would run a controlled pilot on a larger repository and use accepted
-and rejected PRs to calibrate confidence thresholds by component and risk
-class. I would add isolated ephemeral containers, stronger command sandboxes,
-dependency-aware code navigation, and test-impact selection while retaining the
-same reproduction and human-approval gates.
+First, I would turn the demonstration into an installable GitHub App rather
+than requiring the agent to live inside the target repository. A team could
+install it on selected repositories, grant least-privilege Contents, Issues,
+Pull requests, and Checks permissions, and activate it through issue labels or
+commands. Short-lived GitHub App installation tokens would replace
+repository-scoped personal tokens. A hosted control plane would validate
+webhooks, authorize the requesting maintainer, queue runs, publish check
+statuses, and keep each customer and repository isolated.
 
-Second, I would replace artifact/cache persistence with a durable service that
-separates operational logs, sanitized evidence, and versioned repair memory.
-Memory retrieval would combine lexical, symbol, ownership, and change-history
-signals and measure whether each retrieved episode actually improved time,
-quality, or cost.
+Second, I would add a repository onboarding and profile system so the workflow
+can support applications beyond this JavaScript example, including a larger
+application such as Vikunja. Automatic discovery would identify languages,
+package managers, test frameworks, build commands, services, ownership files,
+and likely application boundaries. A reviewed repository profile committed to
+the target repository would then declare trusted setup, reproduction, test, and
+build commands; editable paths; required services; secrets; network policy; and
+risk rules. Stack adapters for Node.js, Python, Go, Java, and .NET would
+normalize search, dependency restoration, test results, coverage, and patch
+validation. This is how the product could support many repositories safely;
+it would not blindly execute arbitrary commands in an unknown repository.
 
-Third, I would integrate branch protection, CODEOWNERS-based routing, deployment
-and rollback evidence, observability, and an evaluation harness covering a
-larger labeled bug set. I would add Slack only if teams requested it; GitHub
-would remain the system of record. The strategic goal would not be maximum
-autonomy. It would be the highest reliable reduction in engineer resolution
-time at an acceptable regression and cost rate.
+Third, every investigation would run in a fresh ephemeral container or
+short-lived VM built from a trusted base image. The runner would clone only the
+authorized revision, start declared dependencies such as PostgreSQL or Redis,
+and reproduce the issue inside the same isolated environment used for
+validation. It would enforce CPU, memory, time, filesystem, process, and
+egress limits; inject only stage-specific short-lived secrets; capture
+sanitized logs and screenshots; and destroy the environment after the run.
+For multi-service applications, the profile could reference a reviewed Docker
+Compose or dev-container definition. This would make realistic reproduction
+possible without allowing untrusted repository code to run on the control
+plane or with GitHub credentials.
+
+Fourth, I would replace per-run artifacts and local SQLite with durable,
+tenant-isolated services for workflow state, evidence, metrics, and versioned
+repair memory. Retrieval would combine lexical, symbol, dependency, ownership,
+and change-history signals and measure whether each memory improved time,
+quality, or cost. The production workflow would add CODEOWNERS routing, branch
+protection, deployment and rollback evidence, audit logs, configurable
+approval points, cost quotas, kill switches, and an evaluation harness spanning
+a larger labeled bug set. A controlled pilot would use accepted, edited, and
+rejected PRs to calibrate autonomy thresholds by repository and component.
+GitHub would remain the system of record, with Slack or Teams added only as a
+notification surface. The objective would remain bounded economic value: the
+largest reliable reduction in engineer resolution time at an acceptable
+regression, security, and model-cost rate.

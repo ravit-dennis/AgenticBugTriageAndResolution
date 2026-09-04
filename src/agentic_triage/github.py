@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Any
+from urllib.parse import quote
 
 import httpx
 
@@ -36,6 +37,63 @@ class GitHubClient:
             "POST",
             f"/repos/{self.repository}/issues/{issue_number}/labels",
             json={"labels": labels},
+        )
+
+    def ensure_label(
+        self,
+        name: str,
+        *,
+        color: str,
+        description: str,
+    ) -> None:
+        encoded_name = quote(name, safe="")
+        response = self.client.request(
+            "GET",
+            f"/repos/{self.repository}/labels/{encoded_name}",
+        )
+        if response.status_code == 200:
+            return
+        if response.status_code != 404:
+            raise GitHubAPIError(
+                f"GitHub label lookup failed with {response.status_code}: "
+                f"{response.text}"
+            )
+        self._request(
+            "POST",
+            f"/repos/{self.repository}/labels",
+            json={
+                "name": name,
+                "color": color.lstrip("#"),
+                "description": description,
+            },
+        )
+
+    def find_issue_by_title(self, title: str) -> dict[str, Any] | None:
+        issues = self._request(
+            "GET",
+            f"/repos/{self.repository}/issues",
+            params={"state": "all", "per_page": 100},
+        )
+        return next(
+            (
+                issue
+                for issue in issues
+                if "pull_request" not in issue and issue.get("title") == title
+            ),
+            None,
+        )
+
+    def create_issue(
+        self,
+        *,
+        title: str,
+        body: str,
+        labels: list[str],
+    ) -> dict[str, Any]:
+        return self._request(
+            "POST",
+            f"/repos/{self.repository}/issues",
+            json={"title": title, "body": body, "labels": labels},
         )
 
     def upsert_issue_comment(
@@ -85,6 +143,32 @@ class GitHubClient:
                 "body": body,
                 "draft": draft,
             },
+        )
+
+    def find_pull_request(
+        self,
+        *,
+        head: str,
+        base: str,
+    ) -> dict[str, Any] | None:
+        pulls = self._request(
+            "GET",
+            f"/repos/{self.repository}/pulls",
+            params={"state": "all", "head": head, "base": base, "per_page": 100},
+        )
+        return pulls[0] if pulls else None
+
+    def update_pull_request(
+        self,
+        pull_number: int,
+        *,
+        title: str,
+        body: str,
+    ) -> dict[str, Any]:
+        return self._request(
+            "PATCH",
+            f"/repos/{self.repository}/pulls/{pull_number}",
+            json={"title": title, "body": body},
         )
 
     def _request(self, method: str, path: str, **kwargs: Any) -> Any:

@@ -11,6 +11,7 @@ class GitHubIssueEvent(BaseModel):
     action: str
     issue: dict[str, Any]
     repository: dict[str, Any]
+    label: dict[str, Any] | None = None
 
     def to_issue(self) -> Issue:
         labels = [
@@ -28,6 +29,13 @@ class GitHubIssueEvent(BaseModel):
     @property
     def repository_full_name(self) -> str:
         return str(self.repository["full_name"])
+
+    @property
+    def trigger_label(self) -> str | None:
+        if self.label is None:
+            return None
+        name = self.label.get("name")
+        return str(name) if name else None
 
 
 class IntakeResult(BaseModel):

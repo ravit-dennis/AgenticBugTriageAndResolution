@@ -39,6 +39,9 @@ class FakeHandlers:
         validation_results: list[bool] | None = None,
         changed_lines: int = 10,
         repair_failures: int = 0,
+        security_sensitive: bool = False,
+        migration_required: bool = False,
+        destructive: bool = False,
     ) -> None:
         self.reproduced = reproduced
         self.risk = risk
@@ -46,6 +49,9 @@ class FakeHandlers:
         self.validation_results = validation_results or [True]
         self.changed_lines = changed_lines
         self.repair_failures = repair_failures
+        self.security_sensitive = security_sensitive
+        self.migration_required = migration_required
+        self.destructive = destructive
         self.published = False
         self.escalations: list[str] = []
         self.validation_calls = 0
@@ -70,6 +76,9 @@ class FakeHandlers:
             severity=Severity.MEDIUM,
             risk=self.risk,
             confidence=self.confidence,
+            security_sensitive=self.security_sensitive,
+            migration_required=self.migration_required,
+            destructive=self.destructive,
         )
 
     def repair(self, state):
@@ -149,3 +158,87 @@ def test_retries_recoverable_repair_failure(run_state) -> None:
     assert result.stage is Stage.COMPLETED
     assert result.repair_attempts == 2
     assert any("malformed patch" in message for message in result.messages)
+
+
+def test_medium_risk_requires_approval_before_repair(run_state) -> None:
+    handlers = FakeHandlers(risk=Risk.MEDIUM, confidence=0.8)
+
+    result = Orchestrator(handlers, InMemoryRepository()).run(run_state)
+
+    assert result.stage is Stage.ESCALATED
+    assert result.autonomy_action is AutonomyAction.DRAFT_PR
+    assert result.repair_attempts == 0
+    assert not handlers.published
+
+
+def test_approved_medium_risk_repair_publishes_as_draft(run_state) -> None:
+    handlers = FakeHandlers(risk=Risk.MEDIUM, confidence=0.8)
+
+    result = Orchestrator(
+        handlers,
+        InMemoryRepository(),
+        human_approved_draft=True,
+    ).run(run_state)
+
+    assert result.stage is Stage.COMPLETED
+    assert result.autonomy_action is AutonomyAction.DRAFT_PR
+    assert handlers.published
+
+
+def test_approved_low_risk_repair_still_publishes_as_draft(run_state) -> None:
+    handlers = FakeHandlers()
+
+    result = Orchestrator(
+        handlers,
+        InMemoryRepository(),
+        human_approved_draft=True,
+    ).run(run_state)
+
+    assert result.stage is Stage.COMPLETED
+    assert result.autonomy_action is AutonomyAction.DRAFT_PR
+    assert handlers.published
+
+
+def test_investigation_only_never_repairs(run_state) -> None:
+    handlers = FakeHandlers()
+
+    result = Orchestrator(
+        handlers,
+        InMemoryRepository(),
+        investigation_only=True,
+    ).run(run_state)
+
+    assert result.stage is Stage.ESCALATED
+    assert result.repair_attempts == 0
+    assert not handlers.published
+
+
+def test_high_risk_cannot_be_overridden_by_draft_approval(run_state) -> None:
+    handlers = FakeHandlers(risk=Risk.HIGH, confidence=0.95)
+
+    result = Orchestrator(
+        handlers,
+        InMemoryRepository(),
+        human_approved_draft=True,
+    ).run(run_state)
+
+    assert result.stage is Stage.ESCALATED
+    assert result.autonomy_action is AutonomyAction.TRIAGE_ONLY
+    assert result.repair_attempts == 0
+
+
+def test_security_flag_cannot_be_overridden_by_draft_approval(run_state) -> None:
+    handlers = FakeHandlers(
+        risk=Risk.MEDIUM,
+        confidence=0.8,
+        security_sensitive=True,
+    )
+
+    result = Orchestrator(
+        handlers,
+        InMemoryRepository(),
+        human_approved_draft=True,
+    ).run(run_state)
+
+    assert result.stage is Stage.ESCALATED
+    assert result.repair_attempts == 0

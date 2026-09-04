@@ -71,7 +71,25 @@ above. The expected result is:
 - an `agent:needs-information` label;
 - a **Human decision required** comment;
 - reproduction/diagnosis evidence and recorded model cost;
+- the exact reproduction command, bounded output, supporting files, safety
+  flags, workflow-run link, and explicit decision options;
 - no published repair branch or PR.
+
+After reviewing the evidence, a collaborator can apply exactly one decision
+label:
+
+| Label | Result |
+|---|---|
+| `agent:retry` | Rerun normal triage after the issue evidence is updated |
+| `agent:investigation-only` | Gather context, reproduce, and diagnose without editing |
+| `agent:approve-draft` | Permit one bounded draft repair when no hard safety blocker exists |
+| `agent:declined` | Record the decision and stop without model spend or target-app commands |
+
+`agent:approve-draft` cannot override failed reproduction, high risk, security
+sensitivity, destructive behavior, or a migration requirement. An approved
+repair is opened as a GitHub draft PR and still requires human review and merge.
+Decision labels are removed after processing so the same action can be applied
+again deliberately.
 
 ## Local live replay
 
@@ -127,7 +145,7 @@ for run_id, state_json in db.execute("select run_id, state_json from runs"):
   branch. A later API failure can leave a pushed branch or PR; the failure
   comment and sanitized report identify the furthest completed publication
   step.
-- Reapplying the triage label reuses the stable `agent/issue-N` branch and
-  updates marker-based comments instead of creating duplicates.
+- Add `agent:retry` after correcting issue evidence. Stable marker-based
+  comments are updated instead of creating duplicates.
 - If a human has modified the agent branch, `--force-with-lease` prevents the
   workflow from silently overwriting the new remote commit.

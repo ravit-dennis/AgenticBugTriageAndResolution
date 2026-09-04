@@ -182,11 +182,15 @@ Post a concise GitHub issue comment with evidence and next action rather than ra
 | Risk/confidence | Behavior |
 |---|---|
 | Low risk and high confidence | Implement, test, and open a ready-for-review PR |
-| Medium risk or medium confidence | Implement and open a draft PR with explicit review questions |
+| Medium risk or medium confidence | Stop before editing and request explicit approval for one draft repair |
 | High risk, low confidence, security-sensitive, migration-related, or destructive | Stop before editing and request human approval with options |
 | Reproduction or validation fails after bounded retries | Escalate with evidence, hypotheses tried, and the smallest useful next action |
 
-The agent will never merge its own PR. GitHub branch protection and required checks remain the final control.
+Escalation comments present decision labels for retry, read-only investigation,
+bounded draft approval, or decline. Draft approval cannot override failed
+reproduction, high risk, security sensitivity, destructive behavior, or
+migration requirements. The agent will never merge its own PR. GitHub branch
+protection and required checks remain the final control.
 
 ### 4.6 Repair
 

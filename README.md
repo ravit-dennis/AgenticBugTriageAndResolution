@@ -44,8 +44,11 @@ The deterministic core and mocked tests do not require an Anthropic API key.
 ## Hosted GitHub workflow
 
 The complete hosted workflow starts only when a trusted repository collaborator
-with triage-or-higher permission adds the `agent:triage` label to an issue.
-GitHub does not allow ordinary public issue reporters to manage labels.
+with triage-or-higher permission adds an agent action label. `agent:triage`
+starts the normal workflow. After an escalation, maintainers can choose
+`agent:retry`, `agent:investigation-only`, `agent:approve-draft`, or
+`agent:declined`. GitHub does not allow ordinary public issue reporters to
+manage labels.
 Configure these encrypted repository Actions secrets:
 
 - `ANTHROPIC_API_KEY`
@@ -56,6 +59,12 @@ The workflow uses Haiku by default, enforces a $0.25 run limit, strips secrets
 from test subprocess environments, restricts edits to `target-app`, reruns the
 exact reproduction plus the complete target-app test suite, and opens a
 reviewable PR or posts a human escalation. It never merges.
+
+Escalation comments include the exact reproduction command, bounded observed
+output, root-cause hypothesis, supporting files, safety flags, model cost, a
+workflow-run link, and explicit maintainer choices. Draft approval cannot
+override failed reproduction, high risk, security sensitivity, destructive
+behavior, or migration requirements.
 
 For seeded demonstrations, include a trusted metadata line in the issue:
 

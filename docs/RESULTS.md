@@ -71,6 +71,13 @@ one repair attempt, passed the unchanged reproduction plus all 15 target-app
 tests, and produced one-file PRs. The HITL run classified the production-only
 report as high risk with 35% confidence and stopped before repair.
 
+The subsequent HITL enhancement makes the issue comment decision-ready: it
+shows bounded reproduction output, diagnosis and supporting files, explicit
+safety flags, model cost, a workflow-run link, and one-shot labels for retry,
+read-only investigation, bounded draft approval, or decline. Medium-risk draft
+candidates now stop before editing. Approval cannot bypass failed reproduction,
+high risk, security sensitivity, destructive behavior, or migrations.
+
 ## Development spend
 
 Seven persisted local workflow attempts, including failed and escalated

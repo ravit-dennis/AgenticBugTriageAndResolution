@@ -2,13 +2,14 @@ from __future__ import annotations
 
 import base64
 import html
+import os
 import subprocess
 import tempfile
 from pathlib import Path
 
 from agentic_triage.github import GitHubClient
 from agentic_triage.live_handlers import LocalWorkflowHandlers
-from agentic_triage.models import AgentRunState
+from agentic_triage.models import AgentRunState, AutonomyAction
 from agentic_triage.tools import ToolPolicyError
 
 
@@ -64,7 +65,7 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
                 head=self.head_branch,
                 base=self.base_branch,
                 body=body,
-                draft=False,
+                draft=state.autonomy_action is AutonomyAction.DRAFT_PR,
             )
         else:
             pull_request = self.github.update_pull_request(
@@ -87,9 +88,13 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
             marker=f"agentic-triage-run:{state.run_id}",
             body=self._completion_comment(state, pull_request["html_url"]),
         )
+        self.github.remove_label(state.issue.number, "agent:running")
+        self.github.remove_label(state.issue.number, "agent:needs-information")
+        self.github.add_labels(state.issue.number, ["agent:resolved"])
 
     def escalate(self, state: AgentRunState, reason: str) -> None:
         super().escalate(state, reason)
+        self.github.remove_label(state.issue.number, "agent:running")
         self.github.add_labels(
             state.issue.number,
             ["agent:needs-information"],
@@ -101,6 +106,7 @@ class GitHubWorkflowHandlers(LocalWorkflowHandlers):
         )
 
     def report_failure(self, state: AgentRunState, error: Exception) -> None:
+        self.github.remove_label(state.issue.number, "agent:running")
         self.github.add_labels(state.issue.number, ["agent:failed"])
         publication = state.metadata.get("publication") or {}
         status = publication.get("status")
@@ -311,13 +317,19 @@ merges its own pull requests.
         diagnosis = state.diagnosis
         severity = diagnosis.severity.value if diagnosis else "unknown"
         confidence = f"{diagnosis.confidence:.0%}" if diagnosis else "unknown"
+        review_mode = (
+            "draft PR requiring explicit approval"
+            if state.autonomy_action is AutonomyAction.DRAFT_PR
+            else "ready-for-review PR"
+        )
         return f"""## Agentic triage completed
 
 **Run ID:** `{state.run_id}`  
 **Severity:** `{severity}`  
 **Confidence:** `{confidence}`  
 **Model cost:** `${self._cost(state):.6f}`  
-**Repair PR:** {pull_url}
+**Repair PR:** {pull_url}  
+**Review mode:** {review_mode}
 
 The issue was reproduced before editing. The exact reproduction and the full
 target-application test suite passed after the localized repair.
@@ -325,23 +337,134 @@ target-application test suite passed after the localized repair.
 
     def _escalation_comment(self, state: AgentRunState, reason: str) -> str:
         diagnosis = state.diagnosis
-        details = (
+        reproduction = state.reproduction
+        workflow_url = self._workflow_url()
+        artifact_name = self._artifact_name(state.issue.number)
+        supporting_files = (
+            "\n".join(
+                f"- `{html.escape(path)}`"
+                for path in diagnosis.supporting_files
+            )
+            if diagnosis and diagnosis.supporting_files
+            else "- None identified"
+        )
+        flags = []
+        if diagnosis:
+            if diagnosis.security_sensitive:
+                flags.append("Security-sensitive")
+            if diagnosis.migration_required:
+                flags.append("Migration required")
+            if diagnosis.destructive:
+                flags.append("Potentially destructive")
+            if diagnosis.cross_layer:
+                flags.append("Cross-layer change")
+        if reproduction and not reproduction.reproduced:
+            flags.append("Reported failure not reproduced")
+        safety_flags = "\n".join(f"- {flag}" for flag in flags) or "- None"
+
+        observed = (
+            self._bounded_evidence(reproduction.observed)
+            if reproduction
+            else "No reproduction evidence was captured."
+        )
+        draft_available = bool(
+            reproduction
+            and reproduction.reproduced
+            and diagnosis
+            and diagnosis.risk.value != "high"
+            and not diagnosis.security_sensitive
+            and not diagnosis.migration_required
+            and not diagnosis.destructive
+        )
+        draft_option = (
+            "3. Add `agent:approve-draft` to authorize one bounded draft "
+            "repair. The agent still cannot merge it."
+            if draft_available
+            else "3. Draft repair approval is unavailable because the issue "
+            "was not reproduced or has a non-overridable safety flag."
+        )
+        diagnosis_details = (
+            f"**Root-cause hypothesis:** "
+            f"{html.escape(diagnosis.root_cause)}\n\n"
             f"**Severity:** `{diagnosis.severity.value}`  \n"
             f"**Change risk:** `{diagnosis.risk.value}`  \n"
-            f"**Confidence:** `{diagnosis.confidence:.0%}`  \n"
+            f"**Confidence:** `{diagnosis.confidence:.0%}`"
             if diagnosis
-            else ""
+            else "No diagnosis was produced."
+        )
+        reproduction_details = (
+            f"**Status:** "
+            f"{'Reproduced' if reproduction.reproduced else 'Not reproduced'}  \n"
+            f"**Command:** `{html.escape(reproduction.command)}`  \n"
+            f"**Expected:** {html.escape(reproduction.expected)}  \n"
+            f"**Output fingerprint:** `{reproduction.output_fingerprint}`"
+            if reproduction
+            else "No reproduction was attempted."
         )
         return f"""## Human decision required
 
 **Run ID:** `{state.run_id}`  
 **Recorded model cost:** `${self._cost(state):.6f}`  
-{details}
 **Reason:** {html.escape(reason)}
 
-The agent stopped without publishing a repair branch. A maintainer should
-review the reproduction and diagnosis before authorizing any code change.
+### Reproduction
+
+{reproduction_details}
+
+<details>
+<summary>Observed command output</summary>
+
+```text
+{observed}
+```
+
+</details>
+
+### Diagnosis
+
+{diagnosis_details}
+
+**Supporting files**
+
+{supporting_files}
+
+**Safety flags**
+
+{safety_flags}
+
+### Evidence
+
+- [Open the GitHub Actions run]({workflow_url})
+- Artifact `{artifact_name}` on that page contains sanitized token, cost,
+  context, attempt, and outcome metrics.
+- No repair branch or pull request was published.
+
+### Maintainer decision
+
+1. Update the issue with better evidence, then add `agent:retry`.
+2. Add `agent:investigation-only` for another read-only diagnosis pass.
+{draft_option}
+4. Add `agent:declined` to record that no further agent action is wanted.
 """
+
+    @staticmethod
+    def _bounded_evidence(value: str, limit: int = 1_500) -> str:
+        normalized = value.replace("\x1b", "")
+        return html.escape(normalized[-limit:].strip() or "(no command output)")
+
+    @staticmethod
+    def _workflow_url() -> str:
+        server = os.environ.get("GITHUB_SERVER_URL", "https://github.com")
+        repository = os.environ.get("GITHUB_REPOSITORY", "")
+        run_id = os.environ.get("GITHUB_RUN_ID", "")
+        if repository and run_id:
+            return f"{server}/{repository}/actions/runs/{run_id}"
+        return server
+
+    @staticmethod
+    def _artifact_name(issue_number: int) -> str:
+        run_id = os.environ.get("GITHUB_RUN_ID", "local")
+        return f"agent-run-{issue_number}-{run_id}"
 
     @staticmethod
     def _cost(state: AgentRunState) -> float:

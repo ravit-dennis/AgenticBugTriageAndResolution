@@ -74,8 +74,9 @@ class LocalWorkflowHandlers:
         files: list[str] = []
         reasons: dict[str, str] = {}
         for query in plan.queries[: self.settings.limits.max_code_searches]:
+            search_pattern = self._safe_search_pattern(query)
             for match in self.tools.search_code(
-                re.escape(query),
+                search_pattern,
                 paths=("target-app",),
                 limit=20,
             ):
@@ -89,9 +90,14 @@ class LocalWorkflowHandlers:
                 break
 
         for path in self._paths_from_issue(state.issue.body):
-            if path not in files and (self.root / path).is_file():
-                files.append(path)
-                reasons[path] = "Referenced directly by the issue"
+            candidates = [path]
+            if not path.startswith("target-app/"):
+                candidates.insert(0, f"target-app/{path}")
+            for candidate in candidates:
+                if candidate not in files and (self.root / candidate).is_file():
+                    files.append(candidate)
+                    reasons[candidate] = "Referenced directly by the issue"
+                    break
 
         if not files:
             raise RuntimeError("Context search found no relevant files")
@@ -224,6 +230,13 @@ class LocalWorkflowHandlers:
     @staticmethod
     def _paths_from_issue(body: str) -> list[str]:
         return re.findall(r"(?:target-app/)?[\w./-]+\.(?:js|jsx|py)", body)
+
+    @staticmethod
+    def _safe_search_pattern(query: str) -> str:
+        terms = re.findall(r"[A-Za-z0-9_/-]+", query)
+        if not terms:
+            raise ValueError("Search query contains no searchable terms")
+        return ".*".join(re.escape(term) for term in terms)
 
     @staticmethod
     def _reproduction_command(body: str) -> str:

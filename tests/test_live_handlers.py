@@ -24,3 +24,10 @@ def test_extracts_reproduction_command_from_issue() -> None:
         LocalWorkflowHandlers._reproduction_command(body)
         == "Set-Location target-app; npm test -- --run bug.test.js"
     )
+
+
+def test_converts_model_wildcards_to_safe_search_pattern() -> None:
+    assert (
+        LocalWorkflowHandlers._safe_search_pattern("offset.*limit")
+        == "offset.*limit"
+    )

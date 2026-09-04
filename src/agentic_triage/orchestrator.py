@@ -12,10 +12,15 @@ class Orchestrator:
         handlers: WorkflowHandlers,
         repository: RunRepository,
         settings: AgentSettings | None = None,
+        *,
+        investigation_only: bool = False,
+        human_approved_draft: bool = False,
     ) -> None:
         self.handlers = handlers
         self.repository = repository
         self.settings = settings or AgentSettings()
+        self.investigation_only = investigation_only
+        self.human_approved_draft = human_approved_draft
 
     def run(self, state: AgentRunState) -> AgentRunState:
         try:
@@ -35,6 +40,31 @@ class Orchestrator:
                 self.settings,
             )
 
+            if self.investigation_only:
+                state.autonomy_action = AutonomyAction.TRIAGE_ONLY
+                return self._escalate(
+                    state,
+                    "Maintainer requested read-only investigation",
+                )
+
+            if self.human_approved_draft:
+                if not self._draft_override_is_safe(state):
+                    return self._escalate(
+                        state,
+                        "Hard safety policy prevents an approved draft repair",
+                    )
+                state.autonomy_action = AutonomyAction.DRAFT_PR
+                state.messages.append(
+                    "Maintainer approved a bounded draft repair"
+                )
+                return self._repair_and_validate(state)
+
+            if state.autonomy_action is AutonomyAction.DRAFT_PR:
+                return self._escalate(
+                    state,
+                    "A draft repair requires explicit maintainer approval",
+                )
+
             if state.autonomy_action is AutonomyAction.TRIAGE_ONLY:
                 return self._escalate(
                     state,
@@ -46,6 +76,20 @@ class Orchestrator:
             state.transition(Stage.FAILED, f"{type(error).__name__}: {error}")
             self.repository.save_run(state)
             raise
+
+    @staticmethod
+    def _draft_override_is_safe(state: AgentRunState) -> bool:
+        reproduction = state.reproduction
+        diagnosis = state.diagnosis
+        return bool(
+            reproduction
+            and reproduction.reproduced
+            and diagnosis
+            and diagnosis.risk.value != "high"
+            and not diagnosis.security_sensitive
+            and not diagnosis.migration_required
+            and not diagnosis.destructive
+        )
 
     def _repair_and_validate(self, state: AgentRunState) -> AgentRunState:
         while state.repair_attempts < self.settings.limits.max_repair_attempts:

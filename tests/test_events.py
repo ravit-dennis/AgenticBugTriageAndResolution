@@ -28,3 +28,10 @@ def test_rejects_missing_label_and_empty_body() -> None:
     assert not result.accepted
     assert "Missing required label: agent:triage" in result.reasons
     assert "Issue body is empty" in result.reasons
+
+
+def test_exposes_label_that_triggered_workflow() -> None:
+    labeled_event = event()
+    labeled_event.label = {"name": "agent:approve-draft"}
+
+    assert labeled_event.trigger_label == "agent:approve-draft"

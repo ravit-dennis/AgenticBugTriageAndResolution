@@ -12,8 +12,10 @@ a failed request.
 
 A GitHub Actions workflow starts only when a trusted collaborator with
 triage-or-higher permission applies the `agent:triage` label. Public issue
-reporters cannot manage labels. The workflow checks out a trusted branch,
-installs the application, and invokes a typed Python state machine:
+reporters cannot manage labels. After escalation, trusted collaborators choose
+retry, read-only investigation, bounded draft approval, or decline through
+one-shot labels. The workflow checks out a trusted branch, installs the
+application, and invokes a typed Python state machine:
 
 `context → reproduce → diagnose → route → repair → validate → publish`
 
@@ -28,8 +30,8 @@ The repository tool surface is deliberately small: bounded search and file
 reads, allowlisted commands, exact edits, test execution, and Git diff. Child
 test processes receive a secret-free environment, edits are enforced under
 `target-app`, and issue-selected branches are restricted to `main` or approved
-demo branches. Owner-only label activation prevents arbitrary public issue
-authors from running repository code with credentials.
+demo branches. GitHub's label permission boundary prevents arbitrary public
+issue authors from running repository code with credentials.
 
 ## Architecture and design choices
 
@@ -54,17 +56,23 @@ Autonomy is tied to evidence and implementation risk:
 
 - high confidence plus a localized low-risk change can produce a ready-for-
   review PR;
-- medium risk or confidence produces a draft/review path;
+- medium risk or confidence stops before editing until a maintainer explicitly
+  approves one bounded draft repair;
 - failed reproduction, low confidence, security sensitivity, destructive
   behavior, migrations, or high risk stops before publication and requests a
   human decision;
 - validation or repair exhaustion also escalates with the attempts and evidence.
 
-GitHub remains the developer interface. Comments contain concise reproduction,
-diagnosis, cost, validation, and next-action information rather than raw logs or
-chain-of-thought. Sanitized run reports are retained briefly as Actions
-artifacts. The demonstrated cross-run repair memory is local SQLite; a durable
-multi-run hosted memory service is part of the one-month production plan.
+GitHub remains the developer interface. Escalation comments include the exact
+reproduction command, bounded observed output, root-cause hypothesis,
+supporting files, safety flags, cost, workflow link, and explicit decision
+labels rather than raw logs or chain-of-thought. Retry and investigation remain
+read-only until policy permits a repair. Draft approval cannot override failed
+reproduction, high risk, security sensitivity, destructive behavior, or
+migration requirements, and an approved repair is opened as a draft PR.
+Sanitized run reports are retained briefly as Actions artifacts. The
+demonstrated cross-run repair memory is local SQLite; a durable multi-run hosted
+memory service is part of the one-month production plan.
 
 ## Results and measurement
 

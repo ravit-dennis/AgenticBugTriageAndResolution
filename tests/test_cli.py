@@ -1,9 +1,13 @@
 import json
+from pathlib import Path
+
+import pytest
 
 from agentic_triage.cli import (
     build_parser,
     report_preflight_failure,
     run_intake,
+    run_github,
     settings_from_environment,
     write_run_report,
 )
@@ -95,3 +99,134 @@ def test_preflight_failure_posts_safe_issue_comment(run_state) -> None:
 
     assert "failed safely" in github.comments[0]
     assert "&lt;unsafe branch&gt;" in github.comments[0]
+
+
+def test_decline_records_decision_without_model_call(
+    tmp_path,
+    monkeypatch,
+) -> None:
+    class FakeGitHub:
+        instances = []
+
+        def __init__(self, **kwargs) -> None:
+            self.comments = []
+            self.removed = []
+            FakeGitHub.instances.append(self)
+
+        def ensure_label(self, *args, **kwargs) -> None:
+            pass
+
+        def remove_label(self, issue_number, label) -> None:
+            self.removed.append((issue_number, label))
+
+        def upsert_issue_comment(self, issue_number, *, marker, body) -> None:
+            self.comments.append(body)
+
+    event_path = tmp_path / "decline.json"
+    event_path.write_text(
+        json.dumps(
+            {
+                "action": "labeled",
+                "label": {"name": "agent:declined"},
+                "issue": {
+                    "number": 9,
+                    "title": "Risky change",
+                    "body": "Do not continue",
+                    "labels": [
+                        {"name": "agent:needs-information"},
+                        {"name": "agent:declined"},
+                    ],
+                },
+                "repository": {"full_name": "example/repo"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    report = tmp_path / "report.json"
+    args = build_parser().parse_args(
+        [
+            "run-github",
+            "--event",
+            str(event_path),
+            "--database",
+            str(tmp_path / "agent.db"),
+            "--report",
+            str(report),
+        ]
+    )
+    monkeypatch.setenv("AGENT_GITHUB_TOKEN", "test-token")
+    monkeypatch.setenv("GITHUB_SHA", "c" * 40)
+    monkeypatch.setattr("agentic_triage.cli.GitHubClient", FakeGitHub)
+    monkeypatch.setattr(
+        "agentic_triage.cli.AnthropicGateway",
+        lambda **kwargs: (_ for _ in ()).throw(
+            AssertionError("model gateway must not be created")
+        ),
+    )
+
+    result = run_github(args)
+
+    payload = json.loads(report.read_text(encoding="utf-8"))
+    assert result == 0
+    assert payload["cost_usd"] == 0
+    assert payload["models"] == []
+    assert "No model call" in FakeGitHub.instances[0].comments[0]
+
+
+def test_workflow_accepts_all_human_decision_labels() -> None:
+    workflow = Path(".github/workflows/agent-intake.yml").read_text(
+        encoding="utf-8"
+    )
+
+    for label in (
+        "agent:triage",
+        "agent:retry",
+        "agent:investigation-only",
+        "agent:approve-draft",
+        "agent:declined",
+    ):
+        assert label in workflow
+
+
+def test_decline_requires_existing_escalation(tmp_path, monkeypatch) -> None:
+    class FakeGitHub:
+        def __init__(self, **kwargs) -> None:
+            pass
+
+        def ensure_label(self, *args, **kwargs) -> None:
+            pass
+
+    event_path = tmp_path / "invalid-decline.json"
+    event_path.write_text(
+        json.dumps(
+            {
+                "action": "labeled",
+                "label": {"name": "agent:declined"},
+                "issue": {
+                    "number": 10,
+                    "title": "Not escalated",
+                    "body": "No prior escalation exists",
+                    "labels": [{"name": "agent:declined"}],
+                },
+                "repository": {"full_name": "example/repo"},
+            }
+        ),
+        encoding="utf-8",
+    )
+    args = build_parser().parse_args(
+        [
+            "run-github",
+            "--event",
+            str(event_path),
+            "--database",
+            str(tmp_path / "agent.db"),
+            "--report",
+            str(tmp_path / "report.json"),
+        ]
+    )
+    monkeypatch.setenv("AGENT_GITHUB_TOKEN", "test-token")
+    monkeypatch.setenv("GITHUB_SHA", "d" * 40)
+    monkeypatch.setattr("agentic_triage.cli.GitHubClient", FakeGitHub)
+
+    with pytest.raises(ValueError, match="existing agent escalation"):
+        run_github(args)

@@ -44,6 +44,14 @@ class AutonomyAction(StrEnum):
     TRIAGE_ONLY = "triage_only"
 
 
+class HumanAction(StrEnum):
+    TRIAGE = "agent:triage"
+    RETRY = "agent:retry"
+    INVESTIGATION_ONLY = "agent:investigation-only"
+    APPROVE_DRAFT = "agent:approve-draft"
+    DECLINED = "agent:declined"
+
+
 class ModelTier(StrEnum):
     HAIKU = "haiku"
     SONNET = "sonnet"
@@ -134,6 +142,7 @@ class AgentRunState(BaseModel):
     usage: list[UsageRecord] = Field(default_factory=list)
     messages: list[str] = Field(default_factory=list)
     metadata: dict[str, Any] = Field(default_factory=dict)
+    human_action: HumanAction = HumanAction.TRIAGE
     created_at: datetime = Field(default_factory=utc_now)
     updated_at: datetime = Field(default_factory=utc_now)
 

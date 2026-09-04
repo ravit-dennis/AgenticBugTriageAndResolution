@@ -16,7 +16,12 @@ concurrency:
 jobs:
   triage-and-repair:
     if: >-
-      github.event.label.name == 'agent:triage'
+      contains(
+        fromJSON(
+          '["agent:triage","agent:retry","agent:investigation-only","agent:approve-draft","agent:declined"]'
+        ),
+        github.event.label.name
+      )
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -28,12 +33,14 @@ jobs:
           python-version: "3.13"
           cache: pip
       - uses: actions/setup-node@v4
+        if: github.event.label.name != 'agent:declined'
         with:
           node-version: "22"
           cache: npm
           cache-dependency-path: target-app/package-lock.json
       - run: python -m pip install .
       - run: npm ci
+        if: github.event.label.name != 'agent:declined'
         working-directory: target-app
       - name: Reproduce, diagnose, repair, and publish
         env:

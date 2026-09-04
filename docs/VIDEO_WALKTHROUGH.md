@@ -48,6 +48,13 @@ diagram only to orient the viewer.
 - Open `ravit-dennis/AgenticBugTriageAndResolution#6`.
 - Show the **Human decision required** comment and
   `agent:needs-information` label.
+- Expand the reproduction output and point to the exact command, expected
+  behavior, root-cause hypothesis, supporting files, safety flags, cost, and
+  workflow-run link.
+- Show the four explicit maintainer actions: retry, investigation-only,
+  approve-draft, and decline.
+- Explain that draft approval is disabled for this high-risk destructive case;
+  hard safety blockers cannot be overridden.
 - Confirm that no repair branch or PR was published.
 - Explain the stop conditions: failed reproduction, low confidence, high risk,
   security sensitivity, destructive behavior, migration, patch limits, retry

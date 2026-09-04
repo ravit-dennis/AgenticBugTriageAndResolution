@@ -80,7 +80,13 @@ def test_escalation_posts_human_decision_without_branch(tmp_path, run_state) -> 
     handler.escalate(run_state, "Reproduction policy requires review")
 
     assert (42, ["agent:needs-information"]) in handler.github.added
-    assert "Human decision required" in handler.github.comments[0][2]
+    body = handler.github.comments[0][2]
+    assert "Human decision required" in body
+    assert "Production-only destructive behavior" in body
+    assert "Potentially destructive" in body
+    assert "agent:retry" in body
+    assert "agent:investigation-only" in body
+    assert "Draft repair approval is unavailable" in body
 
 
 def test_failure_comment_does_not_publish_raw_logs(tmp_path, run_state) -> None:
@@ -223,4 +229,45 @@ def test_publish_commits_pushes_and_creates_pr(tmp_path, run_state) -> None:
     ).stdout.strip()
     assert remote_head
     assert github.pull_requests[0]["base"] == "main"
+    assert github.pull_requests[0]["draft"] is False
     assert repository.memories == 1
+
+
+def test_publish_marks_approved_repair_as_draft(tmp_path, run_state) -> None:
+    handler = GitHubWorkflowHandlers.__new__(GitHubWorkflowHandlers)
+    handler.github = FakeGitHub()
+    handler.repository = FakeRepository()
+    handler.root = tmp_path
+    handler.head_branch = "agent/issue-42"
+    handler.base_branch = "main"
+    handler.repository_name = "example/repo"
+    handler._commit_repair = lambda state: None
+    handler._push_repair = lambda: None
+    run_state.autonomy_action = AutonomyAction.DRAFT_PR
+    run_state.reproduction = ReproductionEvidence(
+        reproduced=True,
+        command="npm test -- safe.test.js",
+        expected="pass",
+        observed="failed",
+        output_fingerprint="abc",
+        confidence=0.9,
+    )
+    run_state.diagnosis = Diagnosis(
+        root_cause="Safe but uncertain mapping",
+        severity=Severity.MEDIUM,
+        risk=Risk.MEDIUM,
+        confidence=0.8,
+    )
+    run_state.repair = RepairResult(
+        changed_files=["target-app/example.js"],
+        changed_lines=2,
+    )
+    run_state.validation = ValidationResult(
+        reproduction_passed=True,
+        targeted_tests_passed=True,
+        regression_tests_passed=True,
+    )
+
+    handler.publish(run_state)
+
+    assert handler.github.pull_requests[0]["draft"] is True

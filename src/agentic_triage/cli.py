@@ -23,7 +23,7 @@ from agentic_triage.hosted import (
 from agentic_triage.hosted_handlers import GitHubWorkflowHandlers
 from agentic_triage.live_handlers import LocalWorkflowHandlers
 from agentic_triage.model_gateway import AnthropicGateway
-from agentic_triage.models import AgentRunState, Stage
+from agentic_triage.models import AgentRunState, HumanAction, Stage
 from agentic_triage.orchestrator import Orchestrator
 from agentic_triage.persistence import SQLiteRepository
 
@@ -193,7 +193,14 @@ def run_github(args: argparse.Namespace) -> int:
     event = GitHubIssueEvent.model_validate_json(
         args.event.read_text(encoding="utf-8")
     )
-    intake = evaluate_intake(event)
+    trigger_label = event.trigger_label or HumanAction.TRIAGE.value
+    try:
+        human_action = HumanAction(trigger_label)
+    except ValueError as error:
+        raise ValueError(
+            f"Unsupported agent action label: {trigger_label}"
+        ) from error
+    intake = evaluate_intake(event, required_label=trigger_label)
     if not intake.accepted:
         raise ValueError(f"Issue failed intake: {', '.join(intake.reasons)}")
 
@@ -207,7 +214,7 @@ def run_github(args: argparse.Namespace) -> int:
         uuid5(
             NAMESPACE_URL,
             f"https://github.com/{event.repository_full_name}/issues/"
-            f"{issue.number}@{commit_sha}",
+            f"{issue.number}@{commit_sha}?action={human_action.value}",
         )
     )
     state = AgentRunState(
@@ -231,8 +238,51 @@ def run_github(args: argparse.Namespace) -> int:
             "Agent stopped for a human decision",
         ),
         ("agent:failed", "b60205", "Agent workflow failed safely"),
+        ("agent:retry", "0078d4", "Retry after issue evidence is updated"),
+        (
+            "agent:investigation-only",
+            "5c2d91",
+            "Run another read-only investigation",
+        ),
+        (
+            "agent:approve-draft",
+            "f7630c",
+            "Approve one bounded draft repair",
+        ),
+        ("agent:declined", "6a737d", "Decline further agent action"),
     ):
         github.ensure_label(name, color=color, description=description)
+
+    if (
+        human_action is not HumanAction.TRIAGE
+        and "agent:needs-information" not in issue.labels
+    ):
+        raise ValueError(
+            f"{trigger_label} requires an existing agent escalation"
+        )
+
+    if human_action is not HumanAction.TRIAGE:
+        github.remove_label(issue.number, human_action.value)
+
+    if human_action is HumanAction.DECLINED:
+        state.transition(Stage.ESCALATED, "Maintainer declined further agent action")
+        state.human_action = human_action
+        repository.save_run(state)
+        github.remove_label(issue.number, "agent:needs-information")
+        github.upsert_issue_comment(
+            issue.number,
+            marker=f"agentic-triage-decision:{issue.number}",
+            body=(
+                "## Agent action declined\n\n"
+                "A maintainer chose `agent:declined`. No model call, target-app "
+                "command, branch, or pull request was created."
+            ),
+        )
+        write_run_report(args.report, state, budget.spent_usd)
+        print(args.report.read_text(encoding="utf-8"))
+        return 0
+
+    state.human_action = human_action
     github.remove_label(issue.number, "agent:failed")
     github.remove_label(issue.number, "agent:needs-information")
 
@@ -288,7 +338,7 @@ def run_github(args: argparse.Namespace) -> int:
             uuid5(
                 NAMESPACE_URL,
                 f"https://github.com/{event.repository_full_name}/issues/"
-                f"{issue.number}@{state.commit_sha}",
+                f"{issue.number}@{state.commit_sha}?action={human_action.value}",
             )
         )
         state.metadata.update(
@@ -323,8 +373,17 @@ def run_github(args: argparse.Namespace) -> int:
         base_branch=base_branch,
         head_branch=head_branch,
     )
+    github.add_labels(issue.number, ["agent:running"])
     try:
-        result = Orchestrator(handlers, repository, settings).run(state)
+        result = Orchestrator(
+            handlers,
+            repository,
+            settings,
+            investigation_only=(
+                human_action is HumanAction.INVESTIGATION_ONLY
+            ),
+            human_approved_draft=(human_action is HumanAction.APPROVE_DRAFT),
+        ).run(state)
     except Exception as error:
         write_run_report(args.report, state, budget.spent_usd)
         try:
@@ -397,6 +456,7 @@ def write_run_report(
                 "prior_memory_ids": state.context.prior_memory_ids,
                 "publication": state.metadata.get("publication"),
                 "escalation_reason": state.metadata.get("escalation_reason"),
+                "human_action": state.human_action.value,
             },
             indent=2,
         )

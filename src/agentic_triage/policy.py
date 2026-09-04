@@ -30,6 +30,7 @@ def choose_autonomy_action(
     if (
         diagnosis.risk is Risk.LOW
         and diagnosis.confidence >= settings.high_confidence_threshold
+        and not diagnosis.cross_layer
     ):
         return AutonomyAction.READY_PR
 

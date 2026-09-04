@@ -358,8 +358,8 @@ Delivered GitHub assets and controls:
 
 ## 8. Seeded Demonstration Bugs
 
-The repository contains two realistic, independently reproducible defects and
-one high-risk HITL scenario:
+The repository contains two realistic, independently reproducible localized
+defects and one cross-layer HITL scenario:
 
 ### Backend bug
 
@@ -373,16 +373,19 @@ The frontend settings form fails to restore submission state after a rejected
 request. It is reproduced by the component test, repaired with a localized
 state reset, and validated by the unchanged reproduction and full suite.
 
-The HITL issue describes production-only account-deletion data loss that is not
-reproducible locally and may require a destructive migration. The agent
-correctly stops with high risk, low confidence, no changed files, and no repair
-branch. Repeatable seeded and replay branches preserve all three scenarios.
+The primary HITL issue reproduces a frontend/backend pagination contract
+mismatch. The agent correctly stops before editing because the repair is
+cross-layer, presents four explicit maintainer choices, and resumes only after
+`agent:approve-draft`. The approved repair uses one Sonnet escalation, passes
+the unchanged reproduction and full suite, and opens a draft PR. A separate
+production-only destructive scenario proves that hard safety blockers cannot
+be overridden. Repeatable seeded and replay branches preserve all scenarios.
 
 ## 9. Testing Strategy
 
 ### Agent unit tests
 
-- 82 Python tests cover workflow transitions, terminal outcomes, model routing,
+- 85 Python tests cover workflow transitions, terminal outcomes, model routing,
   budget enforcement, response validation, context limits, memory, command and
   edit policy, GitHub integration, publication safety, and HITL decisions.
 - Approval tests prove medium-risk work pauses before editing, approved work
@@ -408,6 +411,7 @@ branch. Repeatable seeded and replay branches preserve all three scenarios.
 - Hosted frontend issue to validated PR
 - Hosted high-risk issue to evidence-rich human escalation
 - Hosted `agent:retry` decision with zero changed files and no branch
+- Hosted cross-layer stop, explicit approval, Sonnet repair, and draft PR
 - Duplicate and existing-PR behavior without duplicate publication
 - Memory from bug 1 retrieved and measured during bug 2
 
@@ -453,9 +457,9 @@ reproducibility, safety, measurement, and demonstration quality.
 
 | Evaluation area | Delivered evidence |
 |---|---|
-| Functionality | Hosted backend issue #7 produced PR #10; hosted frontend issue #8 produced PR #11 |
+| Functionality | Final backend issue #33 produced PR #36; final frontend issue #34 produced PR #37 |
 | Autonomy | Reproduction-first low-risk repair, two-attempt limit, patch limits, and no self-merge |
-| Human-in-the-loop | Issue #6 shows decision-ready evidence, explicit action labels, and non-overridable safety gates |
+| Human-in-the-loop | Issue #35 shows stop-before-edit evidence, explicit approval, Haiku-to-Sonnet continuation, and draft PR #38; issue #6 proves non-overridable safety gates |
 | Measurement | Sanitized reports record elapsed time, model tiers, tokens, cost, attempts, context, memory, actions, and publication |
 | Context and memory | Bounded search/read context and retrieval of local memory episode `1` during the frontend run |
 | Taste | Localized one-file repairs, exact validation evidence, concise GitHub UX, clear recovery states, and $0.25 run cap |
@@ -464,16 +468,19 @@ reproducibility, safety, measurement, and demonstration quality.
 
 | Hosted issue | Outcome | Elapsed | Input | Output | Cost | Publication |
 |---|---|---:|---:|---:|---:|---|
-| `ravit-dennis/AgenticBugTriageAndResolution#7` | Backend repair | 19.246s | 6,103 | 493 | $0.008568 | PR #10 |
-| `ravit-dennis/AgenticBugTriageAndResolution#8` | Frontend repair | 19.997s | 10,599 | 732 | $0.014259 | PR #11 |
-| `ravit-dennis/AgenticBugTriageAndResolution#6` | Initial escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
-| `ravit-dennis/AgenticBugTriageAndResolution#6` | Decision-ready retry | 11.212s | 1,925 | 221 | $0.003030 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#33` | Backend repair | 18.467s | 6,083 | 481 | $0.008488 | PR #36 |
+| `ravit-dennis/AgenticBugTriageAndResolution#34` | Frontend repair | 22.222s | 10,626 | 690 | $0.014076 | PR #37 |
+| `ravit-dennis/AgenticBugTriageAndResolution#35` | Approval requested | 9.527s | 3,451 | 279 | $0.004846 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#35` | Approved Sonnet repair | 23.684s | 7,326 | 953 | $0.019317 | Draft PR #38 |
 
-The two successful repairs used Haiku only, required one repair attempt, changed
-one implementation file each, and passed the unchanged reproduction plus all
-15 target-app tests. The final repository passes 82 Python tests, all target-app
-tests, and the frontend production build. Total measured Anthropic spend,
-including development, connectivity, and hosted runs, is $0.145044.
+The two localized repairs used Haiku only, required one repair attempt, changed
+one implementation file each, and passed the unchanged reproduction plus the
+complete target-app suite. The approved cross-layer repair used Haiku and one
+Sonnet escalation, changed one implementation file, passed both validation
+levels, and remained a draft PR. The final repository passes 85 Python tests,
+all target-app tests, and the frontend production build. Total measured
+Anthropic spend, including development, connectivity, and all refreshed hosted
+runs, is $0.237498.
 
 ## 14. Definition of Done
 

@@ -172,7 +172,11 @@ class LocalWorkflowHandlers:
         proposal = self._complete(
             state,
             stage=Stage.REPAIR,
-            tier=select_model(state, self.settings),
+            tier=select_model(
+                state,
+                self.settings,
+                reasoning_blocked=state.repair_attempts > 1,
+            ),
             system=(
                 "Produce the smallest safe repair as a standard unified git diff. "
                 "Use repository-root paths prefixed with target-app/. Do not modify "

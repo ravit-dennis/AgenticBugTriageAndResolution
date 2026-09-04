@@ -315,24 +315,82 @@ merges its own pull requests.
 
     def _completion_comment(self, state: AgentRunState, pull_url: str) -> str:
         diagnosis = state.diagnosis
-        severity = diagnosis.severity.value if diagnosis else "unknown"
-        confidence = f"{diagnosis.confidence:.0%}" if diagnosis else "unknown"
+        reproduction = state.reproduction
+        repair = state.repair
+        validation = state.validation
+        if (
+            diagnosis is None
+            or reproduction is None
+            or repair is None
+            or validation is None
+        ):
+            raise RuntimeError("Cannot report an incomplete published run")
         review_mode = (
             "draft PR requiring explicit approval"
             if state.autonomy_action is AutonomyAction.DRAFT_PR
             else "ready-for-review PR"
         )
+        supporting_files = "\n".join(
+            f"- `{html.escape(path)}`" for path in diagnosis.supporting_files
+        ) or "- None identified"
+        changed_files = "\n".join(
+            f"- `{html.escape(path)}`" for path in repair.changed_files
+        ) or "- None"
+        commands = "\n".join(
+            f"- `{html.escape(command)}`" for command in validation.commands
+        ) or "- None"
+        models = ", ".join(
+            sorted({record.model.value for record in state.usage})
+        ) or "none"
         return f"""## Agentic triage completed
 
 **Run ID:** `{state.run_id}`  
-**Severity:** `{severity}`  
-**Confidence:** `{confidence}`  
-**Model cost:** `${self._cost(state):.6f}`  
 **Repair PR:** {pull_url}  
 **Review mode:** {review_mode}
 
-The issue was reproduced before editing. The exact reproduction and the full
-target-application test suite passed after the localized repair.
+### Reproduction
+
+**Status:** Reproduced before editing  
+**Command:** `{html.escape(reproduction.command)}`  
+**Expected:** {html.escape(reproduction.expected)}  
+**Output fingerprint:** `{reproduction.output_fingerprint}`
+
+### Diagnosis
+
+**Root cause:** {html.escape(diagnosis.root_cause)}
+
+**Severity:** `{diagnosis.severity.value}`  
+**Change risk:** `{diagnosis.risk.value}`  
+**Confidence:** `{diagnosis.confidence:.0%}`
+
+**Supporting files**
+
+{supporting_files}
+
+### Repair and validation
+
+{html.escape(repair.summary)}
+
+**Changed files:** `{len(repair.changed_files)}`  
+**Changed lines:** `{repair.changed_lines}`
+
+{changed_files}
+
+The exact reproduction was rerun unchanged, followed by the complete
+target-application test suite.
+
+{commands}
+
+### Economics and evidence
+
+**Models used:** `{models}`  
+**Repair attempts:** `{state.repair_attempts}`  
+**Model cost:** `${self._cost(state):.6f}`
+
+- [Open the GitHub Actions run]({self._workflow_url()})
+- Artifact `{self._artifact_name(state.issue.number)}` contains the sanitized
+  token, cost, context, human-action, and publication report.
+- The agent did not merge the pull request; human review remains required.
 """
 
     def _escalation_comment(self, state: AgentRunState, reason: str) -> str:

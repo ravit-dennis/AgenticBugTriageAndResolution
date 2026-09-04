@@ -89,6 +89,54 @@ def test_escalation_posts_human_decision_without_branch(tmp_path, run_state) -> 
     assert "Draft repair approval is unavailable" in body
 
 
+def test_completion_comment_contains_full_agent_report(
+    tmp_path,
+    run_state,
+) -> None:
+    handler = handler_for_escalation(tmp_path, run_state)
+    run_state.reproduction = ReproductionEvidence(
+        reproduced=True,
+        command="npm test -- bug.test.js",
+        expected="The regression test passes",
+        observed="failed before repair",
+        output_fingerprint="abc123",
+        confidence=0.99,
+    )
+    run_state.diagnosis = Diagnosis(
+        root_cause="Page index was used as a record offset",
+        supporting_files=["target-app/frontend/src/services/getArticles.js"],
+        severity=Severity.HIGH,
+        risk=Risk.MEDIUM,
+        confidence=0.99,
+        cross_layer=True,
+    )
+    run_state.repair = RepairResult(
+        changed_files=["target-app/frontend/src/services/getArticles.js"],
+        changed_lines=6,
+        summary="Convert page index to record offset.",
+    )
+    run_state.validation = ValidationResult(
+        reproduction_passed=True,
+        targeted_tests_passed=True,
+        regression_tests_passed=True,
+        commands=["npm test -- bug.test.js", "npm test -- --run"],
+    )
+    run_state.repair_attempts = 1
+    run_state.autonomy_action = AutonomyAction.DRAFT_PR
+
+    body = handler._completion_comment(
+        run_state,
+        "https://github.test/example/repo/pull/7",
+    )
+
+    assert "### Reproduction" in body
+    assert "Page index was used as a record offset" in body
+    assert "target-app/frontend/src/services/getArticles.js" in body
+    assert "Convert page index to record offset" in body
+    assert "### Economics and evidence" in body
+    assert "draft PR requiring explicit approval" in body
+
+
 def test_failure_comment_does_not_publish_raw_logs(tmp_path, run_state) -> None:
     handler = handler_for_escalation(tmp_path, run_state)
     run_state.messages.append("large raw process output")

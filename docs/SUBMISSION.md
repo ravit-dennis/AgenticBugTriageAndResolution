@@ -41,11 +41,13 @@ ordinary code and can be tested without an LLM. Pydantic schemas validate all
 model decisions that drive actions. Deterministic tools answer questions before
 model calls, which reduces cost and makes the system easier to audit.
 
-Haiku is the default for context planning, diagnosis, and the first repair.
+Haiku is the default for context planning, diagnosis, and localized repairs.
 Sonnet is available only after a failed repair or when reasoning is genuinely
-ambiguous. Opus is disabled. Each hosted run is capped at $0.25, with bounded
-searches, files, output tokens, repair attempts, changed files, and changed
-lines. Actual successful runs cost $0.009210 and $0.014435.
+ambiguous or cross-layer. Opus is disabled. Each hosted run is capped at $0.25,
+with bounded searches, files, output tokens, repair attempts, changed files,
+and changed lines. The final automatic hosted repairs cost $0.008488 and
+$0.014076. The approved cross-layer run cost $0.019317 and used exactly one
+Sonnet escalation.
 
 SQLite stores run state, model usage, and repair episodes. FTS5 retrieves prior
 symptoms, root causes, fix patterns, and tests. The second demonstration
@@ -81,19 +83,23 @@ repair attempt. The backend workflow completed in 53.8 seconds using 5,895
 input and 663 output tokens. The frontend completed in 38.0 seconds using
 10,965 input and 694 output tokens and retrieved memory episode `1`. Both
 repairs changed one implementation file and passed the exact regression test.
-The repository also passes 82 Python tests, 15 target-application tests, and the
+The repository also passes 85 Python tests, 15 target-application tests, and the
 frontend production build in GitHub Actions.
 
-The final hosted demonstration then processed three maintainer-approved issues on
-clean Ubuntu runners. Backend issue #7 opened one-file repair PR #10 in 19.246
-seconds for $0.008568. Frontend issue #8 opened one-file repair PR #11 in
-19.997 seconds for $0.014259. The production-only data-loss report in issue #6
-was not reproducible; the agent classified it high-risk at 35% confidence,
-spent $0.003053, posted a human-decision request, and published no branch.
-A hosted `agent:retry` then proved the enhanced loop: the issue received full
-reproduction and diagnosis evidence, safety flags, workflow/artifact links, and
-explicit decisions. The retry cost $0.003030, changed zero files, and again
-published no branch or PR.
+The final hosted demonstration processed three maintainer-approved issues on
+clean Ubuntu runners. Backend issue #33 opened one-file repair PR #36 in 18.467
+seconds for $0.008488. Frontend issue #34 opened one-file repair PR #37 in
+22.222 seconds for $0.014076. Cross-layer issue #35 reproduced a pagination
+contract mismatch, diagnosed it at 99% confidence, and stopped before editing
+because the change crossed frontend and backend boundaries. Its decision-ready
+comment showed the exact command and evidence, supporting files, safety flag,
+cost, workflow artifact, and four explicit maintainer actions.
+
+After the maintainer applied `agent:approve-draft`, issue #35 resumed in a fresh
+hosted run. Haiku handled bounded context and diagnosis, Sonnet made the single
+approved repair, the unchanged reproduction and full suite passed, and draft
+PR #38 opened with one changed implementation file. The two-stage HITL flow
+cost $0.024163 in total and retained human review and merge control.
 
 The primary business metric is time from a qualified bug report to a validated
 repair candidate without increasing escaped regressions. Supporting metrics are

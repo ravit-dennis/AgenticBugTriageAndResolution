@@ -8,7 +8,7 @@ diagram only to orient the viewer.
 - Open the repository README.
 - State the goal: reduce engineer time from qualified bug report to validated
   repair without allowing unsafe autonomous changes.
-- Point to the two GitHub issues and repair PRs.
+- Point to the three final evidence issues and their repair PRs.
 
 ## 0:40–1:30 — Architecture
 
@@ -26,7 +26,7 @@ diagram only to orient the viewer.
 
 ## 1:30–3:30 — Backend bug
 
-- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#7`, or
+- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#33`, or
   start a fresh recording with unlabelled replay issue #13.
 - Show the reproduction command and expected/actual behavior.
 - Add or show the `agent:triage` label.
@@ -35,33 +35,41 @@ diagram only to orient the viewer.
   - the one-file offset correction;
   - failing-before/passing-after evidence;
   - full test validation;
-  - severity, risk, confidence, and $0.009210 model cost.
-- For the final hosted evidence, show PR #10 and its $0.008568 run cost.
+  - severity, risk, confidence, and model cost.
+- For the final hosted evidence, show PR #36 and its $0.008488 run cost.
 
 ## 3:30–5:20 — Frontend bug and memory
 
-- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#8` and
-  PR #11, or use unlabelled replay issue #14 for a fresh run.
+- Open completed evidence `ravit-dennis/AgenticBugTriageAndResolution#34` and
+  PR #37, or use unlabelled replay issue #14 for a fresh run.
 - Show the one-line state reset after a rejected update.
 - Point out memory episode `[1]` in the evidence.
 - Explain that memory supplied a prior repair pattern but did not replace
   current-revision search and testing.
 - Show the 38-second run time and $0.014435 cost in `docs/RESULTS.md`.
-- For the final hosted evidence, show PR #11 and its $0.014259 run cost.
+- For the final hosted evidence, show PR #37 and its $0.014076 run cost.
 
 ## 5:20–6:20 — Human-in-the-loop
 
-- Open `ravit-dennis/AgenticBugTriageAndResolution#6`.
-- Show the **Human decision required** comment and
-  `agent:needs-information` label.
-- Expand the reproduction output and point to the exact command, expected
-  behavior, root-cause hypothesis, supporting files, safety flags, cost, and
-  workflow-run link.
+- Open completed evidence
+  `ravit-dennis/AgenticBugTriageAndResolution#35`, or begin a fresh recording
+  with untouched issue #29.
+- For a fresh recording, apply `agent:triage`, wait for the first run, and show
+  that the agent reproduced the defect but stopped before editing because the
+  diagnosis crosses the frontend/backend contract.
+- In the **Human decision required** comment, point to the exact command,
+  expected result, output fingerprint, root-cause hypothesis, supporting
+  files, cross-layer safety flag, cost, and workflow/artifact links.
 - Show the four explicit maintainer actions: retry, investigation-only,
   approve-draft, and decline.
-- Explain that draft approval is disabled for this high-risk destructive case;
-  hard safety blockers cannot be overridden.
-- Confirm that no repair branch or PR was published.
+- Apply `agent:approve-draft` and show the second Actions run.
+- Return to the issue and show the detailed completion report: Haiku and
+  Sonnet, one repair attempt, one changed file, passing exact reproduction and
+  full suite, $0.019317 cost, and draft PR #38.
+- Open the draft PR and show `offset = page * limit`, then emphasize that the
+  agent still cannot merge it.
+- Explain that the approved medium-risk case is resumable, while hard safety
+  blockers cannot be overridden.
 - Explain the stop conditions: failed reproduction, low confidence, high risk,
   security sensitivity, destructive behavior, migration, patch limits, retry
   exhaustion, or budget exhaustion.
@@ -69,10 +77,11 @@ diagram only to orient the viewer.
 ## 6:20–7:10 — Quality and economics
 
 - Open the successful GitHub Actions CI run.
-- Show 82 Python tests, 15 target-app tests, and frontend build.
+- Show 85 Python tests, 15 target-app tests, and frontend build.
 - Open `docs/RESULTS.md`.
-- Highlight that the successful demonstrations cost less than two cents each
-  and used only Haiku.
+- Highlight that the automatic repairs cost less than two cents each and used
+  only Haiku; Sonnet was used once, only after explicit approval for the
+  cross-layer repair.
 - State the business metric: time to validated repair candidate without higher
   escaped-regression risk.
 

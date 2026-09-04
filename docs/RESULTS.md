@@ -54,41 +54,49 @@ sanitized, reviewable record.
 After the local development runs, the complete issue-triggered workflow was
 executed on clean GitHub-hosted Ubuntu runners.
 
+### Final recording evidence
+
 | Issue | Outcome | Elapsed | Input | Output | Cost | Publication |
 |---|---|---:|---:|---:|---:|---|
-| `ravit-dennis/AgenticBugTriageAndResolution#7` | Completed | 19.246s | 6,103 | 493 | $0.008568 | PR #10 |
-| `ravit-dennis/AgenticBugTriageAndResolution#8` | Completed | 19.997s | 10,599 | 732 | $0.014259 | PR #11 |
-| `ravit-dennis/AgenticBugTriageAndResolution#6` | Initial human escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
-| `ravit-dennis/AgenticBugTriageAndResolution#6` | Decision-ready retry | 11.212s | 1,925 | 221 | $0.003030 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#33` | Backend repair | 18.467s | 6,083 | 481 | $0.008488 | PR #36 |
+| `ravit-dennis/AgenticBugTriageAndResolution#34` | Frontend repair | 22.222s | 10,626 | 690 | $0.014076 | PR #37 |
+| `ravit-dennis/AgenticBugTriageAndResolution#35` | Approval requested | 9.527s | 3,451 | 279 | $0.004846 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#35` | Approved Sonnet repair | 23.684s | 7,326 | 953 | $0.019317 | Draft PR #38 |
 
 Hosted workflow runs:
 
-- Backend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881688029
-- Frontend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881840872
-- HITL: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881992652
-- Decision-ready HITL retry: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33888135771
+- Backend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33892693454
+- Frontend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33892695157
+- HITL diagnosis: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33892696955
+- Approved draft repair: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33892851889
 
 The backend and frontend runs used Haiku only, selected two context files, made
-one repair attempt, passed the unchanged reproduction plus all 15 target-app
-tests, and produced one-file PRs. The HITL run classified the production-only
-report as high risk with 35% confidence and stopped before repair.
+one repair attempt, passed the unchanged reproduction plus the complete
+target-app suite, and produced one-file PRs. The cross-layer pagination run
+used Haiku to reproduce and diagnose the contract mismatch, classified the
+change as medium risk at 99% confidence, and stopped before editing. Its issue
+comment exposed retry, read-only investigation, bounded draft approval, and
+decline actions with exact evidence and workflow links.
 
-The subsequent HITL enhancement makes the issue comment decision-ready: it
-shows bounded reproduction output, diagnosis and supporting files, explicit
-safety flags, model cost, a workflow-run link, and one-shot labels for retry,
-read-only investigation, bounded draft approval, or decline. Medium-risk draft
-candidates now stop before editing. Approval cannot bypass failed reproduction,
-high risk, security sensitivity, destructive behavior, or migrations.
-The hosted `agent:retry` proof used Haiku only, recorded the human action in the
-sanitized artifact, changed zero files, and again published no branch or PR.
+After a maintainer applied `agent:approve-draft`, the workflow resumed from a
+fresh trusted checkout. Haiku repeated bounded context and diagnosis work,
+Sonnet performed the one permitted cross-layer repair, and the unchanged
+reproduction plus full target-app suite passed. The run changed only
+`target-app/frontend/src/services/getArticles.js` and opened draft PR #38; the
+agent did not merge it. Approval still cannot bypass failed reproduction, high
+risk, security sensitivity, destructive behavior, or migrations.
+
+The intentionally untouched recording issues are #13 for backend repair, #14
+for frontend repair, and #29 for the cross-layer HITL/Sonnet flow.
 
 ## Development spend
 
 Seven persisted local workflow attempts, including failed and escalated
 development runs, recorded $0.116006. The initial API connectivity check cost
-$0.000128. The four hosted demonstrations added $0.028910, producing a measured
-total of $0.145044. The Anthropic billing console remains authoritative for any
-request not represented by these records.
+$0.000128. The original hosted demonstrations and subsequent refreshed,
+decision-ready, and Sonnet evidence runs bring the measured total to $0.237498.
+The Anthropic billing console remains authoritative for any request not
+represented by these records.
 
 ## Business and operational metrics
 

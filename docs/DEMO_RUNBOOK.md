@@ -25,21 +25,24 @@ npm test -- --run
 npm run build -w frontend
 ```
 
-Expected result: 82 Python tests, 15 target-application tests, and a successful
+Expected result: 85 Python tests, 15 target-application tests, and a successful
 frontend build.
 
 ## Hosted GitHub demonstration
 
 Completed hosted evidence:
 
-- Backend: `ravit-dennis/AgenticBugTriageAndResolution#7`
-- Frontend: `ravit-dennis/AgenticBugTriageAndResolution#8`
-- Human escalation: `ravit-dennis/AgenticBugTriageAndResolution#6`
+- Backend: `ravit-dennis/AgenticBugTriageAndResolution#33` → PR #36
+- Frontend: `ravit-dennis/AgenticBugTriageAndResolution#34` → PR #37
+- HITL and approved Sonnet repair:
+  `ravit-dennis/AgenticBugTriageAndResolution#35` → draft PR #38
 
 Fresh, intentionally unlabelled video replays:
 
 - Backend: `ravit-dennis/AgenticBugTriageAndResolution#13`
 - Frontend: `ravit-dennis/AgenticBugTriageAndResolution#14`
+- Cross-layer HITL/Sonnet:
+  `ravit-dennis/AgenticBugTriageAndResolution#29`
 
 To run one:
 
@@ -62,11 +65,28 @@ To run one:
 
 The agent publishes a branch and PR but never merges it.
 
-## Human-escalation demonstration
+## Resumable human-in-the-loop demonstration
 
-Use an issue that cannot be reproduced or that describes a security-sensitive,
-destructive, migration-related, or low-confidence repair. Apply the label as
-above. The expected result is:
+Use untouched issue #29. It declares
+`demo/replay-pagination-contract-bug` as its trusted base branch and reproduces
+a real frontend/backend pagination contract mismatch.
+
+1. Apply `agent:triage`.
+2. Open the linked workflow and show bounded context selection, the failing
+   reproduction, and Haiku diagnosis.
+3. Return to the issue. The first run must stop before editing because the
+   change is cross-layer and medium risk.
+4. Review the **Human decision required** comment and its exact reproduction,
+   output fingerprint, diagnosis, supporting files, safety flag, cost, and
+   workflow/artifact links.
+5. Apply `agent:approve-draft`.
+6. Show the resumed workflow using Haiku and one Sonnet escalation.
+7. Return to the issue and show the detailed completion report.
+8. Open the generated draft PR and show the one-file
+   `offset = page * limit` repair, unchanged reproduction, and complete-suite
+   validation.
+
+The first-stage expected result is:
 
 - an `agent:needs-information` label;
 - a **Human decision required** comment;
@@ -74,6 +94,11 @@ above. The expected result is:
 - the exact reproduction command, bounded output, supporting files, safety
   flags, workflow-run link, and explicit decision options;
 - no published repair branch or PR.
+
+After approval, the expected result is a draft PR with one changed
+implementation file. The agent removes the one-shot decision label, records
+`agent:approve-draft` in the sanitized report, and leaves review and merge to a
+human. The proven final evidence is issue #35 and draft PR #38.
 
 After reviewing the evidence, a collaborator can apply exactly one decision
 label:

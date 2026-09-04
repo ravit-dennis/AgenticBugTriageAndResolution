@@ -3,7 +3,7 @@
   "issue": {
     "number": 101,
     "title": "[Backend] Article offset skips the wrong number of records",
-    "body": "## Summary\nThe articles endpoint treats the offset query parameter as a page number instead of the number of records to skip.\n\nAgent base branch: `demo/live-backend-bug`\n\n## Reproduction steps\nRun `Set-Location target-app; npm test -- --run backend/helper/pagination.test.js` and observe the failure for limit=10 and offset=20.\n\n## Expected behavior\nThe query uses offset 20.\n\n## Actual behavior\nThe query uses offset 200.\n\n## Environment\nLocal target app test suite.",
+    "body": "## Summary\nThe articles endpoint treats the offset query parameter as a page number instead of the number of records to skip.\n\nAgent base branch: `demo/replay-backend-bug`\n\n## Reproduction steps\nRun `Set-Location target-app; npm test -- --run backend/helper/pagination.test.js` and observe the failure for limit=10 and offset=20.\n\n## Expected behavior\nThe query uses offset 20.\n\n## Actual behavior\nThe query uses offset 200.\n\n## Environment\nLocal target app test suite.",
     "labels": [
       {
         "name": "bug"

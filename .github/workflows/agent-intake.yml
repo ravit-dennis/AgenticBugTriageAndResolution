@@ -16,8 +16,7 @@ concurrency:
 jobs:
   triage-and-repair:
     if: >-
-      github.event.label.name == 'agent:triage' &&
-      github.event.sender.id == github.event.repository.owner.id
+      github.event.label.name == 'agent:triage'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

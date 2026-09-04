@@ -50,7 +50,7 @@ To run one:
    Agent base branch: `demo/replay-backend-bug`
    ```
 
-3. Review the issue content as the repository owner.
+3. Review the issue content as a trusted repository collaborator.
 4. Add the `agent:triage` label. Do not place this label on the issue template;
    adding it is the explicit approval to execute.
 5. Open the Actions tab and select **Agentic bug intake and repair**.

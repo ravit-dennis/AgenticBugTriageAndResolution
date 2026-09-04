@@ -10,9 +10,10 @@ database. Two deterministic bugs demonstrate the workflow: incorrect backend
 offset pagination and a frontend settings button that remains unavailable after
 a failed request.
 
-A GitHub Actions workflow starts only when the repository owner applies the
-`agent:triage` label. It checks out a trusted branch, installs the application,
-and invokes a typed Python state machine:
+A GitHub Actions workflow starts only when a trusted collaborator with
+triage-or-higher permission applies the `agent:triage` label. Public issue
+reporters cannot manage labels. The workflow checks out a trusted branch,
+installs the application, and invokes a typed Python state machine:
 
 `context → reproduce → diagnose → route → repair → validate → publish`
 
@@ -75,7 +76,7 @@ repairs changed one implementation file and passed the exact regression test.
 The repository also passes 71 Python tests, 15 target-application tests, and the
 frontend production build in GitHub Actions.
 
-The final hosted demonstration then processed three owner-approved issues on
+The final hosted demonstration then processed three maintainer-approved issues on
 clean Ubuntu runners. Backend issue #7 opened one-file repair PR #10 in 19.246
 seconds for $0.008568. Frontend issue #8 opened one-file repair PR #11 in
 19.997 seconds for $0.014259. The production-only data-loss report in issue #6

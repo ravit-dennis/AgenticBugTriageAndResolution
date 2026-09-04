@@ -1,0 +1,53 @@
+name: Agentic bug report
+description: Report a reproducible bug for the triage and repair agent
+title: "[Bug] "
+labels:
+  - bug
+  - agent:triage
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Provide deterministic evidence where possible. The agent will reproduce the issue before changing code.
+  - type: textarea
+    id: summary
+    attributes:
+      label: Summary
+      description: What is broken, and who is affected?
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Include exact commands, inputs, URLs, or UI actions.
+      placeholder: |
+        1. Start the application...
+        2. Sign in as...
+        3. Open...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: evidence
+    attributes:
+      label: Logs, screenshots, or other evidence
+      description: Remove secrets and personal information before submitting.
+  - type: input
+    id: environment
+    attributes:
+      label: Environment
+      placeholder: Browser, operating system, commit, or deployment
+    validations:
+      required: true

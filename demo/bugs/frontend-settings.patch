@@ -1,0 +1,7 @@
+diff --git a/target-app/frontend/src/components/SettingsForm/SettingsForm.jsx b/target-app/frontend/src/components/SettingsForm/SettingsForm.jsx
+--- a/target-app/frontend/src/components/SettingsForm/SettingsForm.jsx
++++ b/target-app/frontend/src/components/SettingsForm/SettingsForm.jsx
+@@ -51,3 +51,2 @@ function SettingsForm() {
+       console.error(error);
+-      setInactive(false);
+     }

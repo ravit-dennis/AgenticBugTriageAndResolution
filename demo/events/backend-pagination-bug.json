@@ -1,0 +1,23 @@
+{
+  "action": "opened",
+  "issue": {
+    "number": 101,
+    "title": "[Backend] Article offset skips the wrong number of records",
+    "body": "## Summary\nThe articles endpoint treats the offset query parameter as a page number instead of the number of records to skip.\n\n## Reproduction steps\n1. Apply demo/bugs/backend-pagination.patch.\n2. Run `Set-Location target-app; npm test -- --run backend/helper/pagination.test.js`.\n3. Observe the test failure for limit=10 and offset=20.\n\n## Expected behavior\nThe query uses offset 20.\n\n## Actual behavior\nThe query uses offset 200.\n\n## Environment\nLocal target app test suite.",
+    "labels": [
+      {
+        "name": "bug"
+      },
+      {
+        "name": "agent:triage"
+      },
+      {
+        "name": "component:backend"
+      }
+    ],
+    "html_url": "https://github.com/radennis_microsoft/AgenticBugTriageAndResolution/issues/101"
+  },
+  "repository": {
+    "full_name": "radennis_microsoft/AgenticBugTriageAndResolution"
+  }
+}

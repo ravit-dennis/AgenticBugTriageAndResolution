@@ -1,0 +1,10 @@
+diff --git a/target-app/backend/helper/pagination.js b/target-app/backend/helper/pagination.js
+--- a/target-app/backend/helper/pagination.js
++++ b/target-app/backend/helper/pagination.js
+@@ -7,3 +7,5 @@ function parsePagination({ limit = 3, offset = 0 } = {}) {
+     limit: Number.isNaN(parsedLimit) ? 3 : parsedLimit,
+-    offset: Number.isNaN(parsedOffset) ? 0 : parsedOffset,
++    offset: Number.isNaN(parsedOffset)
++      ? 0
++      : parsedOffset * (Number.isNaN(parsedLimit) ? 3 : parsedLimit),
+   };

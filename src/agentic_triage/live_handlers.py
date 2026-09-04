@@ -48,9 +48,14 @@ class LocalWorkflowHandlers:
         self.repository = repository
         self.settings = settings
         self.reproduction_command: list[str] | None = None
+        self.prior_memories: list[dict[str, object]] = []
         self._usage_index = 0
 
     def gather_context(self, state: AgentRunState) -> ContextSelection:
+        self.prior_memories = self.repository.search_memories(
+            '"target app"',
+            limit=3,
+        )
         plan = self._complete(
             state,
             stage=Stage.CONTEXT,
@@ -107,6 +112,9 @@ class LocalWorkflowHandlers:
             search_queries=plan.queries,
             files=files[: self.settings.limits.max_files_read],
             reasons=reasons,
+            prior_memory_ids=[
+                int(memory["id"]) for memory in self.prior_memories
+            ],
         )
 
     def reproduce(self, state: AgentRunState) -> ReproductionEvidence:
@@ -144,6 +152,7 @@ class LocalWorkflowHandlers:
                 "issue": state.issue.model_dump(),
                 "reproduction": state.reproduction.model_dump(),
                 "files": self._file_context(state.context.files),
+                "prior_memories": self.prior_memories,
             },
             response_model=Diagnosis,
             reason="root cause diagnosis",
@@ -199,6 +208,23 @@ class LocalWorkflowHandlers:
             "mode": "local",
             "status": "ready_for_github_pr",
         }
+        self.repository.record_memory(
+            state,
+            symptoms=(
+                f"{state.issue.title}\n{state.issue.body}\n"
+                "Target app regression workflow"
+            ),
+            fix_pattern=(
+                f"{state.repair.summary if state.repair else ''}\n"
+                f"Reproduction: {state.reproduction.command}"
+            ),
+            tests=(
+                state.validation.commands
+                if state.validation is not None
+                else []
+            ),
+            outcome="validated_local_repair",
+        )
         self.repository.save_run(state)
 
     def escalate(self, state: AgentRunState, reason: str) -> None:

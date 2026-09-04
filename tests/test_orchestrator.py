@@ -25,6 +25,9 @@ class InMemoryRepository:
     def save_run(self, state: AgentRunState) -> None:
         self.saved_stages.append(state.stage)
 
+    def record_memory(self, state, **kwargs):
+        return 1
+
 
 class FakeHandlers:
     def __init__(

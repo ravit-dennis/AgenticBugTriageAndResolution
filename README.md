@@ -43,9 +43,10 @@ The deterministic core and mocked tests do not require an Anthropic API key.
 
 ## Hosted GitHub workflow
 
-The complete hosted workflow starts only when the repository owner adds the
-`agent:triage` label to an issue. Configure these encrypted repository Actions
-secrets:
+The complete hosted workflow starts only when a trusted repository collaborator
+with triage-or-higher permission adds the `agent:triage` label to an issue.
+GitHub does not allow ordinary public issue reporters to manage labels.
+Configure these encrypted repository Actions secrets:
 
 - `ANTHROPIC_API_KEY`
 - `AGENT_GITHUB_TOKEN`, using a repository-scoped fine-grained token with

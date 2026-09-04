@@ -13,7 +13,7 @@ diagram only to orient the viewer.
 ## 0:40–1:30 — Architecture
 
 - Open `docs/architecture.excalidraw` in https://aka.ms/excalidraw.
-- Trace: owner-approved issue → GitHub Actions → typed orchestrator → bounded
+- Trace: maintainer-approved issue → GitHub Actions → typed orchestrator → bounded
   tools and Anthropic → SQLite memory → validated PR or human escalation.
 - Emphasize Haiku-first routing, the $0.25 hosted cap, secret-free test
   processes, trusted branches, and no self-merge.

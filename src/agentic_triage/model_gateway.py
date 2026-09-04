@@ -13,6 +13,8 @@ from agentic_triage.models import ModelTier, Stage, UsageRecord
 
 ResponseModel = TypeVar("ResponseModel", bound=BaseModel)
 
+SCHEMA_REPAIR_ATTEMPTS = 1
+
 
 @dataclass(frozen=True)
 class ModelDefinition:
@@ -66,7 +68,6 @@ class AnthropicGateway:
         response_model: type[ResponseModel],
         reason: str,
     ) -> ResponseModel:
-        definition = MODEL_CATALOG[tier]
         schema = response_model.model_json_schema()
         prompt = (
             "Return only one JSON object that validates against this JSON Schema. "
@@ -74,11 +75,55 @@ class AnthropicGateway:
             f"JSON Schema:\n{json.dumps(schema, separators=(',', ':'))}\n\n"
             f"Input:\n{json.dumps(payload, separators=(',', ':'), default=str)}"
         )
+        messages: list[dict[str, Any]] = [{"role": "user", "content": prompt}]
+        last_error: ModelResponseError | None = None
+
+        # One bounded corrective attempt: schema violations such as an
+        # over-length list are recoverable when the validator message is fed
+        # back, and both attempts are metered against the same run budget.
+        for attempt in range(SCHEMA_REPAIR_ATTEMPTS + 1):
+            text = self._call(
+                stage=stage,
+                tier=tier,
+                system=system,
+                messages=messages,
+                reason=reason if attempt == 0 else f"{reason} (schema repair)",
+            )
+            try:
+                return response_model.model_validate_json(self._unwrap_json(text))
+            except ValueError as error:
+                last_error = ModelResponseError(
+                    f"Invalid structured response for {response_model.__name__}: {error}"
+                )
+                messages = messages + [
+                    {"role": "assistant", "content": text},
+                    {"role": "user", "content": (
+                        "That response failed schema validation with:\n"
+                        f"{error}\n\n"
+                        "Return only a corrected JSON object that satisfies every "
+                        "constraint in the schema, including all minimum and maximum "
+                        "item counts. Do not wrap it in Markdown."
+                    )},
+                ]
+
+        assert last_error is not None
+        raise last_error
+
+    def _call(
+        self,
+        *,
+        stage: Stage,
+        tier: ModelTier,
+        system: str,
+        messages: list[dict[str, Any]],
+        reason: str,
+    ) -> str:
+        definition = MODEL_CATALOG[tier]
         response = self.client.messages.create(
             model=definition.model_id,
             max_tokens=self.settings.limits.max_output_tokens_per_call,
             system=system,
-            messages=[{"role": "user", "content": prompt}],
+            messages=messages,
         )
         input_tokens = int(response.usage.input_tokens)
         output_tokens = int(response.usage.output_tokens)
@@ -102,13 +147,7 @@ class AnthropicGateway:
         )
         self.budget.record(usage)
 
-        text = self._text_content(response)
-        try:
-            return response_model.model_validate_json(self._unwrap_json(text))
-        except ValueError as error:
-            raise ModelResponseError(
-                f"Invalid structured response for {response_model.__name__}: {error}"
-            ) from error
+        return self._text_content(response)
 
     @staticmethod
     def _text_content(response: Any) -> str:

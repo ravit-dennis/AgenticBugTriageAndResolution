@@ -36,6 +36,18 @@ class FakeMessages:
         )
 
 
+class SequencedMessages(FakeMessages):
+    """Return a different response body for each successive call."""
+
+    def __init__(self, texts: list[str]):
+        super().__init__(texts[0])
+        self.texts = texts
+
+    def create(self, **kwargs):
+        self.text = self.texts[min(len(self.calls), len(self.texts) - 1)]
+        return super().create(**kwargs)
+
+
 def gateway(messages: FakeMessages, settings: AgentSettings | None = None):
     client = SimpleNamespace(messages=messages)
     budget = BudgetTracker(max_cost_usd=1.0)
@@ -99,6 +111,28 @@ def test_accepts_single_markdown_fenced_json_object() -> None:
     )
 
     assert answer.answer == "bounded context"
+
+
+def test_repairs_a_schema_violation_on_a_second_attempt() -> None:
+    messages = SequencedMessages([
+        '{"answer":"first","confidence":"not-a-number"}',
+        '{"answer":"corrected","confidence":0.7}',
+    ])
+    model_gateway, budget = gateway(messages)
+
+    answer = model_gateway.complete_json(
+        stage=Stage.CONTEXT,
+        tier=ModelTier.HAIKU,
+        system="Plan context.",
+        payload={},
+        response_model=StructuredAnswer,
+        reason="context planning",
+    )
+
+    assert answer.answer == "corrected"
+    assert len(messages.calls) == 2
+    assert "failed schema validation" in messages.calls[1]["messages"][-1]["content"]
+    assert budget.records[1].reason.endswith("(schema repair)")
 
 
 def test_rejects_input_over_configured_limit() -> None:

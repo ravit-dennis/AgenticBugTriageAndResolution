@@ -61,3 +61,22 @@ def test_normalizes_fenced_patch_and_final_newline() -> None:
 
     assert RepositoryTools._normalize_patch(patch).endswith("\n")
     assert "```" not in RepositoryTools._normalize_patch(patch)
+
+
+def test_applies_exact_unique_text_edit(repository_root) -> None:
+    tools = RepositoryTools(repository_root)
+
+    tools.apply_edits(
+        [("src/example.py", "return sum(items)", "return sum(items) + 1")]
+    )
+
+    assert "return sum(items) + 1" in tools.read_file("src/example.py", 1, 2)
+
+
+def test_rejects_non_unique_text_edit(repository_root) -> None:
+    tools = RepositoryTools(repository_root)
+    path = repository_root / "duplicates.txt"
+    path.write_text("same\nsame\n", encoding="utf-8")
+
+    with pytest.raises(ToolPolicyError, match="found 2"):
+        tools.apply_edits([("duplicates.txt", "same", "changed")])

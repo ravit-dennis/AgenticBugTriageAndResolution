@@ -52,7 +52,14 @@ symptoms, root causes, fix patterns, and tests. The second demonstration
 retrieved the first repair memory, but the agent still searched and validated
 the current revision rather than trusting stale conclusions.
 
-Autonomy is tied to evidence and implementation risk:
+Autonomy is controlled by a deterministic AI-readiness scorecard. The
+scorecard—not the model narrative—decides whether work may advance. Successful
+reproduction, implementation risk, security and destructive-behavior flags,
+migration requirements, patch limits, and retry and budget limits are
+evaluated as explicit policy gates. Model-produced confidence and diagnosis
+explain the decision and provide evidence, but cannot override a failed gate.
+Missing or unknown safety evidence fails closed and routes the issue to a
+human.
 
 - high confidence plus a localized low-risk change can produce a ready-for-
   review PR;
@@ -98,9 +105,12 @@ published no branch or PR.
 The primary business metric is time from a qualified bug report to a validated
 repair candidate without increasing escaped regressions. Supporting metrics are
 reproduction rate, autonomous completion, first-patch success, escalation rate,
-cost per repair, memory hits, developer acceptance, and rework. The current
-demonstration proves the mechanism; a real pilot would compare these measures
-against manual triage over several weeks.
+cost per repair, memory hits, developer acceptance, and rework. A production
+pilot would also measure dwell time in reproduction, diagnosis, repair,
+validation, and human review; identify the stages where work stalls; and count
+which readiness rule caused each escalation. The current demonstration proves
+the mechanism; a real pilot would compare these measures against manual triage
+over several weeks.
 
 ## What I would build with one month
 
@@ -124,6 +134,11 @@ risk rules. Stack adapters for Node.js, Python, Go, Java, and .NET would
 normalize search, dependency restoration, test results, coverage, and patch
 validation. This is how the product could support many repositories safely;
 it would not blindly execute arbitrary commands in an unknown repository.
+The profile would also connect to organizational context such as service
+criticality, dependency blast radius, active incidents, recent deployments,
+owning teams, CODEOWNERS, and reviewer or on-call availability. These signals
+would feed versioned readiness scorecards so unknown blast radius or missing
+ownership fails closed rather than becoming an LLM guess.
 
 Third, every investigation would run in a fresh ephemeral container or
 short-lived VM built from a trusted base image. The runner would clone only the
@@ -141,12 +156,15 @@ Fourth, I would replace per-run artifacts and local SQLite with durable,
 tenant-isolated services for workflow state, evidence, metrics, and versioned
 repair memory. Retrieval would combine lexical, symbol, dependency, ownership,
 and change-history signals and measure whether each memory improved time,
-quality, or cost. The production workflow would add CODEOWNERS routing, branch
-protection, deployment and rollback evidence, audit logs, configurable
-approval points, cost quotas, kill switches, and an evaluation harness spanning
-a larger labeled bug set. A controlled pilot would use accepted, edited, and
-rejected PRs to calibrate autonomy thresholds by repository and component.
-GitHub would remain the system of record, with Slack or Teams added only as a
-notification surface. The objective would remain bounded economic value: the
-largest reliable reduction in engineer resolution time at an acceptable
-regression, security, and model-cost rate.
+quality, or cost. A durable work-item record would connect the originating
+issue, agent run, PR, merge, deployment, rollback, and production outcome while
+recording every stage transition and readiness-rule result. The production
+workflow would add CODEOWNERS routing, branch protection, deployment and
+rollback evidence, audit logs, configurable approval points, cost quotas, kill
+switches, and an evaluation harness spanning a larger labeled bug set. A
+controlled pilot would use accepted, edited, and rejected PRs, stage dwell
+times, stall points, and escaped regressions to calibrate autonomy thresholds
+by repository and component. GitHub would remain the system of record, with
+Slack or Teams added only as a notification surface. The objective would remain
+bounded economic value: the largest reliable reduction in engineer resolution
+time at an acceptable regression, security, and model-cost rate.

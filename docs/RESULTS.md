@@ -103,6 +103,10 @@ to a validated repair candidate. Supporting production metrics should include:
 - escaped regression rate;
 - developer PR acceptance and rework;
 - context files, tokens, and memory-hit rate.
+- dwell time in reproduction, diagnosis, repair, validation, and human review;
+- stage stall points and escalation counts by failed readiness rule;
+- issue-to-PR-to-deployment cycle time and production regression or rollback
+  outcomes.
 
 Two seeded bugs prove feasibility, not a statistically meaningful production
 baseline. A production pilot should compare these metrics against a manual

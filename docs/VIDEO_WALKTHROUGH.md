@@ -62,9 +62,11 @@ diagram only to orient the viewer.
 - Explain that draft approval is disabled for this high-risk destructive case;
   hard safety blockers cannot be overridden.
 - Confirm that no repair branch or PR was published.
-- Explain the stop conditions: failed reproduction, low confidence, high risk,
-  security sensitivity, destructive behavior, migration, patch limits, retry
-  exhaustion, or budget exhaustion.
+- Describe these stop conditions as a deterministic **AI-readiness scorecard**:
+  failed reproduction, high risk, security sensitivity, destructive behavior,
+  migration, patch limits, retry exhaustion, or budget exhaustion block
+  autonomy. Model confidence and diagnosis explain the result but cannot
+  override a failed gate; unknown safety evidence fails closed.
 
 ## 6:20–7:10 — Quality and economics
 
@@ -75,15 +77,18 @@ diagram only to orient the viewer.
   and used only Haiku.
 - State the business metric: time to validated repair candidate without higher
   escaped-regression risk.
+- Explain that a production pilot would also measure stage dwell time, stall
+  points, and escalation counts by failed readiness rule.
 
 ## 7:10–8:00 — Strategic next version
 
 - Briefly summarize the one-month plan from `docs/SUBMISSION.md`:
   an installable least-privilege GitHub App, reviewed per-repository profiles
-  and language adapters, ephemeral container/VM reproduction with declared
-  services and strict resource/network isolation, durable tenant-isolated
-  evidence and memory, production governance, and threshold calibration from a
-  larger pilot.
+  and language adapters, organizational context such as service criticality,
+  dependency blast radius, incidents, ownership, and reviewer availability,
+  ephemeral container/VM reproduction with declared services and strict
+  resource/network isolation, durable issue-to-deployment evidence and memory,
+  production governance, and threshold calibration from a larger pilot.
 - Close with the design principle: economically bounded autonomy that proves
   the problem, makes the smallest safe change, verifies it, and knows when to
   involve a human.

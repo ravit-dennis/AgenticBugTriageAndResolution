@@ -264,7 +264,7 @@ class LocalWorkflowHandlers:
 
     @staticmethod
     def _paths_from_issue(body: str) -> list[str]:
-        return re.findall(r"(?:target-app/)?[\w./-]+\.(?:js|jsx|py)", body)
+        return re.findall(r"(?:target-app/)?[\w./-]+\.(?:jsx|js|py)", body)
 
     @staticmethod
     def _safe_search_pattern(query: str) -> str:

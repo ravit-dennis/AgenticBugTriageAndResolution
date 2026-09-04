@@ -19,3 +19,16 @@ def test_ambiguous_diagnosis_escalates_once_to_sonnet(run_state) -> None:
     assert select_model(run_state, settings) is ModelTier.SONNET
     assert select_model(run_state, settings) is ModelTier.HAIKU
     assert run_state.sonnet_escalations == 1
+
+
+def test_failed_repair_escalates_once_to_sonnet(run_state) -> None:
+    settings = AgentSettings()
+
+    assert (
+        select_model(run_state, settings, reasoning_blocked=True)
+        is ModelTier.SONNET
+    )
+    assert (
+        select_model(run_state, settings, reasoning_blocked=True)
+        is ModelTier.HAIKU
+    )

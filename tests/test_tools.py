@@ -10,7 +10,7 @@ def test_reads_bounded_lines_and_searches_code(repository_root) -> None:
 
     assert tools.read_file("src/example.py", 1, 1) == "def calculate_total(items):"
     assert tools.search_code("sum", paths=("src",)) == [
-        "src\\example.py:2:return sum(items)"
+        "src/example.py:2:return sum(items)"
     ]
 
 

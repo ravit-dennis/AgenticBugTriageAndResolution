@@ -84,7 +84,7 @@ class RepositoryTools:
                     continue
                 for line_number, line in enumerate(lines, 1):
                     if pattern.search(line):
-                        relative = candidate.relative_to(self.root)
+                        relative = candidate.relative_to(self.root).as_posix()
                         matches.append(f"{relative}:{line_number}:{line.strip()}")
                         if len(matches) >= limit:
                             return matches

@@ -58,13 +58,15 @@ executed on clean GitHub-hosted Ubuntu runners.
 |---|---|---:|---:|---:|---:|---|
 | `ravit-dennis/AgenticBugTriageAndResolution#7` | Completed | 19.246s | 6,103 | 493 | $0.008568 | PR #10 |
 | `ravit-dennis/AgenticBugTriageAndResolution#8` | Completed | 19.997s | 10,599 | 732 | $0.014259 | PR #11 |
-| `ravit-dennis/AgenticBugTriageAndResolution#6` | Human escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#6` | Initial human escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#6` | Decision-ready retry | 11.212s | 1,925 | 221 | $0.003030 | No branch or PR |
 
 Hosted workflow runs:
 
 - Backend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881688029
 - Frontend: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881840872
 - HITL: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33881992652
+- Decision-ready HITL retry: https://github.com/ravit-dennis/AgenticBugTriageAndResolution/actions/runs/33888135771
 
 The backend and frontend runs used Haiku only, selected two context files, made
 one repair attempt, passed the unchanged reproduction plus all 15 target-app
@@ -77,13 +79,15 @@ safety flags, model cost, a workflow-run link, and one-shot labels for retry,
 read-only investigation, bounded draft approval, or decline. Medium-risk draft
 candidates now stop before editing. Approval cannot bypass failed reproduction,
 high risk, security sensitivity, destructive behavior, or migrations.
+The hosted `agent:retry` proof used Haiku only, recorded the human action in the
+sanitized artifact, changed zero files, and again published no branch or PR.
 
 ## Development spend
 
 Seven persisted local workflow attempts, including failed and escalated
 development runs, recorded $0.116006. The initial API connectivity check cost
-$0.000128. The three hosted demonstrations added $0.025880, producing a measured
-total of $0.142014. The Anthropic billing console remains authoritative for any
+$0.000128. The four hosted demonstrations added $0.028910, producing a measured
+total of $0.145044. The Anthropic billing console remains authoritative for any
 request not represented by these records.
 
 ## Business and operational metrics

@@ -63,7 +63,7 @@ diagram only to orient the viewer.
 ## 6:20–7:10 — Quality and economics
 
 - Open the successful GitHub Actions CI run.
-- Show 71 Python tests, 15 target-app tests, and frontend build.
+- Show 82 Python tests, 15 target-app tests, and frontend build.
 - Open `docs/RESULTS.md`.
 - Highlight that the successful demonstrations cost less than two cents each
   and used only Haiku.

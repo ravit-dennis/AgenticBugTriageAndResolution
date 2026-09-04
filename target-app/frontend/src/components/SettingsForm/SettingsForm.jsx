@@ -47,6 +47,7 @@ function SettingsForm() {
       setAuthState(updatedAuthState);
     } catch (error) {
       console.error(error);
+      setInactive(false);
     }
   };
 

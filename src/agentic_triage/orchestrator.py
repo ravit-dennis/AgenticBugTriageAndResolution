@@ -55,7 +55,15 @@ class Orchestrator:
                 Stage.REPAIR,
                 f"Repair attempt {state.repair_attempts}",
             )
-            state.repair = self.handlers.repair(state)
+            try:
+                state.repair = self.handlers.repair(state)
+            except Exception as error:
+                state.messages.append(
+                    f"Repair attempt {state.repair_attempts} failed: "
+                    f"{type(error).__name__}: {error}"
+                )
+                self.repository.save_run(state)
+                continue
 
             if patch_requires_approval(state.repair, self.settings):
                 state.autonomy_action = AutonomyAction.DRAFT_PR
@@ -65,7 +73,15 @@ class Orchestrator:
                 )
 
             self._transition(state, Stage.VALIDATE, "Validating repair")
-            state.validation = self.handlers.validate(state)
+            try:
+                state.validation = self.handlers.validate(state)
+            except Exception as error:
+                state.messages.append(
+                    f"Validation attempt {state.repair_attempts} failed: "
+                    f"{type(error).__name__}: {error}"
+                )
+                self.repository.save_run(state)
+                continue
             if state.validation.passed:
                 self._transition(state, Stage.PUBLISH, "Publishing pull request")
                 self.handlers.publish(state)

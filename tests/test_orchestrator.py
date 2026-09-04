@@ -38,12 +38,14 @@ class FakeHandlers:
         confidence: float = 0.95,
         validation_results: list[bool] | None = None,
         changed_lines: int = 10,
+        repair_failures: int = 0,
     ) -> None:
         self.reproduced = reproduced
         self.risk = risk
         self.confidence = confidence
         self.validation_results = validation_results or [True]
         self.changed_lines = changed_lines
+        self.repair_failures = repair_failures
         self.published = False
         self.escalations: list[str] = []
         self.validation_calls = 0
@@ -71,6 +73,8 @@ class FakeHandlers:
         )
 
     def repair(self, state):
+        if state.repair_attempts <= self.repair_failures:
+            raise ValueError("malformed patch")
         return RepairResult(
             changed_files=["backend/controllers/articles.js"],
             changed_lines=self.changed_lines,
@@ -135,3 +139,13 @@ def test_large_patch_escalates_before_validation(run_state) -> None:
     assert result.stage is Stage.ESCALATED
     assert result.autonomy_action is AutonomyAction.DRAFT_PR
     assert handlers.validation_calls == 0
+
+
+def test_retries_recoverable_repair_failure(run_state) -> None:
+    handlers = FakeHandlers(repair_failures=1)
+
+    result = Orchestrator(handlers, InMemoryRepository()).run(run_state)
+
+    assert result.stage is Stage.COMPLETED
+    assert result.repair_attempts == 2
+    assert any("malformed patch" in message for message in result.messages)

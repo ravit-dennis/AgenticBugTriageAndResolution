@@ -130,7 +130,8 @@ class RepositoryTools:
         return result.stdout
 
     def apply_patch(self, patch: str) -> None:
-        if not patch.strip():
+        patch = self._normalize_patch(patch)
+        if not patch:
             raise ToolPolicyError("Patch is empty")
         changed_paths = self._patch_paths(patch)
         if not changed_paths:
@@ -187,3 +188,13 @@ class RepositoryTools:
         path = (self.root / relative_path).resolve()
         if path != self.root and self.root not in path.parents:
             raise ToolPolicyError("Patch path escapes repository root")
+
+    @staticmethod
+    def _normalize_patch(patch: str) -> str:
+        normalized = patch.strip()
+        if normalized.startswith("```"):
+            lines = normalized.splitlines()
+            if len(lines) < 3 or lines[-1].strip() != "```":
+                raise ToolPolicyError("Malformed fenced patch")
+            normalized = "\n".join(lines[1:-1]).strip()
+        return normalized + "\n" if normalized else ""

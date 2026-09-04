@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import hashlib
 import re
+import shutil
 import subprocess
 from dataclasses import dataclass
 from pathlib import Path
@@ -100,9 +101,12 @@ class RepositoryTools:
         executable = Path(command[0]).name.lower()
         if executable not in self.allowed_commands:
             raise ToolPolicyError(f"Command is not allowlisted: {executable}")
+        resolved_executable = shutil.which(command[0])
+        if resolved_executable is None:
+            raise FileNotFoundError(f"Command was not found: {command[0]}")
 
         completed = subprocess.run(
-            command,
+            [resolved_executable, *command[1:]],
             cwd=self.root,
             capture_output=True,
             text=True,

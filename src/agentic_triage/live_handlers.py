@@ -81,6 +81,7 @@ class LocalWorkflowHandlers:
                 limit=20,
             ):
                 path = match.split(":", 1)[0]
+                path = Path(path).as_posix()
                 if path not in files:
                     files.append(path)
                     reasons[path] = f"Matched search query: {query}"
@@ -94,9 +95,10 @@ class LocalWorkflowHandlers:
             if not path.startswith("target-app/"):
                 candidates.insert(0, f"target-app/{path}")
             for candidate in candidates:
-                if candidate not in files and (self.root / candidate).is_file():
-                    files.append(candidate)
-                    reasons[candidate] = "Referenced directly by the issue"
+                normalized = Path(candidate).as_posix()
+                if normalized not in files and (self.root / normalized).is_file():
+                    files.append(normalized)
+                    reasons[normalized] = "Referenced directly by the issue"
                     break
 
         if not files:

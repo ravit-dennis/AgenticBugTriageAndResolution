@@ -10,7 +10,7 @@ from dotenv import load_dotenv
 
 from agentic_triage.github import GitHubClient
 
-REPOSITORY = "radennis_microsoft/AgenticBugTriageAndResolution"
+DEFAULT_REPOSITORY = "ravit-dennis/AgenticBugTriageAndResolution"
 
 LABELS = {
     "agent:triage": ("5319e7", "Issue is eligible for agentic triage"),
@@ -136,10 +136,13 @@ Confirm the behavior matches the public API/UI contract and that the localized c
 
 def main() -> None:
     load_dotenv(Path.cwd() / ".env")
-    token = os.environ.get("GITHUB_TOKEN")
+    repository = os.environ.get("GITHUB_REPOSITORY", DEFAULT_REPOSITORY)
+    token = os.environ.get("PERSONAL_GITHUB_TOKEN") or os.environ.get("GITHUB_TOKEN")
     if not token:
-        raise RuntimeError("GITHUB_TOKEN is not configured")
-    github = GitHubClient(repository=REPOSITORY, token=token)
+        raise RuntimeError(
+            "PERSONAL_GITHUB_TOKEN or GITHUB_TOKEN is not configured"
+        )
+    github = GitHubClient(repository=repository, token=token)
 
     for name, (color, description) in LABELS.items():
         github.ensure_label(name, color=color, description=description)
@@ -165,7 +168,7 @@ def main() -> None:
             body=triage_comment(state),
         )
 
-        owner = REPOSITORY.split("/", 1)[0]
+        owner = repository.split("/", 1)[0]
         head = f"{owner}:{scenario['head']}"
         pull_request = github.find_pull_request(
             head=head,

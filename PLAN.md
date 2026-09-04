@@ -301,7 +301,7 @@ Tests, generated snapshots, and lockfile changes will be reported separately whe
 
 ## 7. GitHub Integration
 
-Use this repository, `radennis_microsoft/AgenticBugTriageAndResolution`, for the submission, issue tracking, seeded bug demonstrations, and generated repair PRs.
+Use this repository, `ravit-dennis/AgenticBugTriageAndResolution`, for the submission, issue tracking, seeded bug demonstrations, and generated repair PRs.
 
 Planned GitHub assets:
 

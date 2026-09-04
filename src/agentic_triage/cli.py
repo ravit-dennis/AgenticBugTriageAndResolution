@@ -233,7 +233,6 @@ def run_github(args: argparse.Namespace) -> int:
         ("agent:failed", "b60205", "Agent workflow failed safely"),
     ):
         github.ensure_label(name, color=color, description=description)
-    github.add_labels(issue.number, ["agent:running"])
     github.remove_label(issue.number, "agent:failed")
     github.remove_label(issue.number, "agent:needs-information")
 
@@ -265,8 +264,6 @@ def run_github(args: argparse.Namespace) -> int:
                 "base_branch": base_branch,
             }
             repository.save_run(state)
-            github.add_labels(issue.number, ["agent:resolved"])
-            github.remove_label(issue.number, "agent:running")
             github.upsert_issue_comment(
                 issue.number,
                 marker=f"agentic-triage-run:{state.run_id}",
@@ -351,7 +348,6 @@ def report_preflight_failure(
     error: Exception,
 ) -> None:
     github.add_labels(state.issue.number, ["agent:failed"])
-    github.remove_label(state.issue.number, "agent:running")
     github.upsert_issue_comment(
         state.issue.number,
         marker=f"agentic-triage-run:{state.run_id}",

@@ -29,6 +29,7 @@ diagram only to orient the viewer.
   - failing-before/passing-after evidence;
   - full test validation;
   - severity, risk, confidence, and $0.009210 model cost.
+- For the final hosted evidence, show PR #10 and its $0.008568 run cost.
 
 ## 3:30–5:20 — Frontend bug and memory
 
@@ -39,6 +40,7 @@ diagram only to orient the viewer.
 - Explain that memory supplied a prior repair pattern but did not replace
   current-revision search and testing.
 - Show the 38-second run time and $0.014435 cost in `docs/RESULTS.md`.
+- For the final hosted evidence, show PR #11 and its $0.014259 run cost.
 
 ## 5:20–6:20 — Human-in-the-loop
 

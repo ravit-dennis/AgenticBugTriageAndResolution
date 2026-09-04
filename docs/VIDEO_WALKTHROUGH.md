@@ -1,0 +1,71 @@
+# Video Walkthrough Script
+
+Target length: 7–8 minutes. Show the product running; use the architecture
+diagram only to orient the viewer.
+
+## 0:00–0:40 — Problem and outcome
+
+- Open the repository README.
+- State the goal: reduce engineer time from qualified bug report to validated
+  repair without allowing unsafe autonomous changes.
+- Point to the two GitHub issues and repair PRs.
+
+## 0:40–1:30 — Architecture
+
+- Open `docs/architecture.excalidraw` in https://aka.ms/excalidraw.
+- Trace: owner-approved issue → GitHub Actions → typed orchestrator → bounded
+  tools and Anthropic → SQLite memory → validated PR or human escalation.
+- Emphasize Haiku-first routing, the $0.25 hosted cap, secret-free test
+  processes, trusted branches, and no self-merge.
+
+## 1:30–3:30 — Backend bug
+
+- Open `ravit-dennis/AgenticBugTriageAndResolution#7`.
+- Show the reproduction command and expected/actual behavior.
+- Add or show the `agent:triage` label.
+- Open the Actions run and show the live stages.
+- Open the generated PR and show:
+  - the one-file offset correction;
+  - failing-before/passing-after evidence;
+  - full test validation;
+  - severity, risk, confidence, and $0.009210 model cost.
+
+## 3:30–5:20 — Frontend bug and memory
+
+- Open `ravit-dennis/AgenticBugTriageAndResolution#8` and its generated repair
+  PR.
+- Show the one-line state reset after a rejected update.
+- Point out memory episode `[1]` in the evidence.
+- Explain that memory supplied a prior repair pattern but did not replace
+  current-revision search and testing.
+- Show the 38-second run time and $0.014435 cost in `docs/RESULTS.md`.
+
+## 5:20–6:20 — Human-in-the-loop
+
+- Open `ravit-dennis/AgenticBugTriageAndResolution#6`.
+- Show the **Human decision required** comment and
+  `agent:needs-information` label.
+- Confirm that no repair branch or PR was published.
+- Explain the stop conditions: failed reproduction, low confidence, high risk,
+  security sensitivity, destructive behavior, migration, patch limits, retry
+  exhaustion, or budget exhaustion.
+
+## 6:20–7:10 — Quality and economics
+
+- Open the successful GitHub Actions CI run.
+- Show 71 Python tests, 15 target-app tests, and frontend build.
+- Open `docs/RESULTS.md`.
+- Highlight that the successful demonstrations cost less than two cents each
+  and used only Haiku.
+- State the business metric: time to validated repair candidate without higher
+  escaped-regression risk.
+
+## 7:10–8:00 — Strategic next version
+
+- Briefly summarize the one-month plan from `docs/SUBMISSION.md`:
+  production pilot and threshold calibration, stronger ephemeral sandboxes,
+  durable evidence/memory services, dependency-aware context, CODEOWNERS,
+  deployment/rollback evidence, and a larger evaluation harness.
+- Close with the design principle: economically bounded autonomy that proves
+  the problem, makes the smallest safe change, verifies it, and knows when to
+  involve a human.

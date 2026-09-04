@@ -49,7 +49,10 @@ class LocalWorkflowHandlers:
         settings: AgentSettings,
     ) -> None:
         self.root = Path(root).resolve()
-        self.tools = RepositoryTools(self.root)
+        self.tools = RepositoryTools(
+            self.root,
+            editable_roots=("target-app",),
+        )
         self.gateway = gateway
         self.repository = repository
         self.settings = settings
@@ -200,6 +203,8 @@ class LocalWorkflowHandlers:
             response_model=RepairProposal,
             reason=f"repair attempt {state.repair_attempts}",
         )
+        for edit in proposal.edits:
+            self._validate_repair_path(edit.path)
         self.tools.apply_edits(
             [
                 (edit.path, edit.old_text, edit.new_text)
@@ -217,17 +222,31 @@ class LocalWorkflowHandlers:
     def validate(self, state: AgentRunState) -> ValidationResult:
         if self.reproduction_command is None:
             raise RuntimeError("No reproduction command was captured")
-        result = self.tools.run_command(
+        reproduction = self.tools.run_command(
             self.reproduction_command,
             timeout_seconds=180,
         )
-        passed = result.return_code == 0
+        regression = self.tools.run_command(
+            ["npm", "--prefix", "target-app", "test", "--", "--run"],
+            timeout_seconds=300,
+        )
         return ValidationResult(
-            reproduction_passed=passed,
-            targeted_tests_passed=passed,
-            regression_tests_passed=passed,
-            commands=[state.reproduction.command],
-            summary=(result.stdout + "\n" + result.stderr)[-4_000:],
+            reproduction_passed=reproduction.return_code == 0,
+            targeted_tests_passed=reproduction.return_code == 0,
+            regression_tests_passed=regression.return_code == 0,
+            commands=[
+                state.reproduction.command,
+                "npm --prefix target-app test -- --run",
+            ],
+            summary=(
+                reproduction.stdout
+                + "\n"
+                + reproduction.stderr
+                + "\n"
+                + regression.stdout
+                + "\n"
+                + regression.stderr
+            )[-4_000:],
         )
 
     def publish(self, state: AgentRunState) -> None:
@@ -313,9 +332,33 @@ class LocalWorkflowHandlers:
         return None
 
     @staticmethod
+    def _validate_repair_path(path: str) -> None:
+        normalized = Path(path).as_posix()
+        name = Path(normalized).name.lower()
+        immutable_names = {
+            "package.json",
+            "package-lock.json",
+            "vitest.config.js",
+            "vitest.config.ts",
+            "vite.config.js",
+            "vite.config.ts",
+        }
+        if (
+            not normalized.startswith("target-app/")
+            or ".test." in name
+            or ".spec." in name
+            or name in immutable_names
+            or "test" in Path(normalized).parts
+            or "tests" in Path(normalized).parts
+        ):
+            raise ValueError(
+                f"Hosted repair cannot modify tests or test configuration: {path}"
+            )
+
+    @staticmethod
     def _reproduction_command(body: str) -> str:
         for code in re.findall(r"`([^`]+)`", body):
-            if "npm test" in code or "pytest" in code:
+            if "npm test" in code:
                 return code
         raise ValueError("Issue does not contain a supported reproduction command")
 
@@ -326,4 +369,45 @@ class LocalWorkflowHandlers:
             prefix, normalized = normalized.split(";", 1)
             if "target-app" in prefix:
                 normalized = f"npm --prefix target-app{normalized.strip()[3:]}"
-        return shlex.split(normalized.strip(), posix=False)
+        parsed = shlex.split(normalized.strip(), posix=False)
+        LocalWorkflowHandlers._validate_reproduction_command(parsed)
+        return parsed
+
+    @staticmethod
+    def _validate_reproduction_command(command: list[str]) -> None:
+        if not command:
+            raise ValueError("Reproduction command is empty")
+        if any(
+            ".." in argument.replace("\\", "/").split("/")
+            or Path(argument.strip("\"'")).is_absolute()
+            or re.match(r"^[A-Za-z]:", argument.strip("\"'"))
+            for argument in command[1:]
+        ):
+            raise ValueError("Reproduction command contains an unsafe path")
+
+        executable = Path(command[0]).name.lower()
+        if executable == "npm":
+            if command[1:6] != [
+                "--prefix",
+                "target-app",
+                "test",
+                "--",
+                "--run",
+            ]:
+                raise ValueError(
+                    "npm reproduction must run the target-app test script"
+                )
+            test_paths = command[6:]
+            if not test_paths or any(
+                argument.startswith("-")
+                or not re.fullmatch(
+                    r"(?:backend|frontend)/[A-Za-z0-9_./-]+\.test\.(?:js|jsx)",
+                    argument.strip("\"'"),
+                )
+                for argument in test_paths
+            ):
+                raise ValueError(
+                    "npm reproduction accepts only target-app test file paths"
+                )
+            return
+        raise ValueError("Unsupported reproduction command")

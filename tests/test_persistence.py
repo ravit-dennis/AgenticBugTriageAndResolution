@@ -36,3 +36,37 @@ def test_memory_is_searchable(tmp_path, run_state) -> None:
     assert memory_id > 0
     assert len(results) == 1
     assert results[0]["root_cause"] == run_state.diagnosis.root_cause
+
+
+def test_recording_same_run_updates_memory(tmp_path, run_state) -> None:
+    repository = SQLiteRepository(tmp_path / "agent.db")
+    run_state.diagnosis = Diagnosis(
+        root_cause="Offset was interpreted as a page number",
+        supporting_files=["backend/helper/pagination.js"],
+        severity=Severity.HIGH,
+        risk=Risk.LOW,
+        confidence=0.99,
+    )
+
+    first_id = repository.record_memory(
+        run_state,
+        symptoms="Pagination skips too many records",
+        fix_pattern="Use the absolute offset",
+        tests=["pagination.test.js"],
+        outcome="validated_pr",
+    )
+    second_id = repository.record_memory(
+        run_state,
+        symptoms="Updated pagination symptoms",
+        fix_pattern="Keep the absolute offset",
+        tests=["pagination.test.js"],
+        outcome="validated_pr",
+    )
+
+    assert second_id == first_id
+    with repository._connect() as connection:
+        count = connection.execute(
+            "SELECT COUNT(*) FROM memories WHERE run_id = ?",
+            (run_state.run_id,),
+        ).fetchone()[0]
+    assert count == 1

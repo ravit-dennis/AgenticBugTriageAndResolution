@@ -13,8 +13,14 @@ diagram only to orient the viewer.
 ## 0:40–1:30 — Architecture
 
 - Open `docs/architecture.excalidraw` in https://aka.ms/excalidraw.
-- Trace: maintainer-approved issue → GitHub Actions → typed orchestrator → bounded
-  tools and Anthropic → SQLite memory → validated PR or human escalation.
+- Walk left to right through the three zones: GitHub trust/authorization,
+  bounded runner execution, and GitHub outcomes.
+- Follow the numbered context → reproduce → diagnose/route → repair → validate
+  path and read the condition on each arrow.
+- Contrast the green automatic path with the red stop-before-edit path and show
+  exactly when `agent:approve-draft` may return to repair.
+- Point out that repository tools, Anthropic, and SQLite are shared services,
+  not extra control-flow stages.
 - Emphasize Haiku-first routing, the $0.25 hosted cap, secret-free test
   processes, trusted branches, and no self-merge.
 

@@ -104,6 +104,16 @@ class LocalWorkflowHandlers:
                 if normalized not in files and (self.root / normalized).is_file():
                     files.append(normalized)
                     reasons[normalized] = "Referenced directly by the issue"
+                    source_candidate = self._source_for_test(normalized)
+                    if (
+                        source_candidate
+                        and source_candidate not in files
+                        and (self.root / source_candidate).is_file()
+                    ):
+                        files.append(source_candidate)
+                        reasons[source_candidate] = (
+                            "Implementation adjacent to an issue-referenced test"
+                        )
                     break
 
         if not files:
@@ -273,6 +283,18 @@ class LocalWorkflowHandlers:
         if not terms:
             raise ValueError("Search query contains no searchable terms")
         return ".*".join(re.escape(term) for term in terms)
+
+    @staticmethod
+    def _source_for_test(path: str) -> str | None:
+        for suffix in (".test.jsx", ".test.js", "_test.py"):
+            if path.endswith(suffix):
+                replacement = {
+                    ".test.jsx": ".jsx",
+                    ".test.js": ".js",
+                    "_test.py": ".py",
+                }[suffix]
+                return path[: -len(suffix)] + replacement
+        return None
 
     @staticmethod
     def _reproduction_command(body: str) -> str:

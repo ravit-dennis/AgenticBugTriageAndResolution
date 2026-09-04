@@ -25,7 +25,7 @@ npm test -- --run
 npm run build -w frontend
 ```
 
-Expected result: 71 Python tests, 15 target-application tests, and a successful
+Expected result: 82 Python tests, 15 target-application tests, and a successful
 frontend build.
 
 ## Hosted GitHub demonstration

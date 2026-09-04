@@ -81,7 +81,7 @@ repair attempt. The backend workflow completed in 53.8 seconds using 5,895
 input and 663 output tokens. The frontend completed in 38.0 seconds using
 10,965 input and 694 output tokens and retrieved memory episode `1`. Both
 repairs changed one implementation file and passed the exact regression test.
-The repository also passes 71 Python tests, 15 target-application tests, and the
+The repository also passes 82 Python tests, 15 target-application tests, and the
 frontend production build in GitHub Actions.
 
 The final hosted demonstration then processed three maintainer-approved issues on
@@ -90,6 +90,10 @@ seconds for $0.008568. Frontend issue #8 opened one-file repair PR #11 in
 19.997 seconds for $0.014259. The production-only data-loss report in issue #6
 was not reproducible; the agent classified it high-risk at 35% confidence,
 spent $0.003053, posted a human-decision request, and published no branch.
+A hosted `agent:retry` then proved the enhanced loop: the issue received full
+reproduction and diagnosis evidence, safety flags, workflow/artifact links, and
+explicit decisions. The retry cost $0.003030, changed zero files, and again
+published no branch or PR.
 
 The primary business metric is time from a qualified bug report to a validated
 repair candidate without increasing escaped regressions. Supporting metrics are

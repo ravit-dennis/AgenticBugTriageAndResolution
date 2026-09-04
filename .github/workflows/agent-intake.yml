@@ -1,43 +1,56 @@
-name: Agentic bug intake
+name: Agentic bug intake and repair
 
 on:
   issues:
-    types: [opened, reopened, labeled]
-  workflow_dispatch:
-    inputs:
-      event_file:
-        description: Repository-relative issue event fixture
-        required: true
-        default: demo/events/backend-bug.json
+    types: [labeled]
 
 permissions:
   contents: read
   issues: write
+  pull-requests: write
 
 concurrency:
-  group: agentic-triage-${{ github.event.issue.number || github.run_id }}
+  group: agentic-triage-${{ github.event.issue.number }}
   cancel-in-progress: false
 
 jobs:
-  intake:
+  triage-and-repair:
     if: >-
-      github.event_name == 'workflow_dispatch' ||
-      contains(github.event.issue.labels.*.name, 'agent:triage')
+      github.event.label.name == 'agent:triage' &&
+      github.event.sender.id == github.event.repository.owner.id
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: "3.13"
           cache: pip
+      - uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          cache: npm
+          cache-dependency-path: target-app/package-lock.json
       - run: python -m pip install .
-      - name: Process live issue intake
-        if: github.event_name == 'issues'
+      - run: npm ci
+        working-directory: target-app
+      - name: Reproduce, diagnose, repair, and publish
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: agentic-triage intake --event "$GITHUB_EVENT_PATH" --database data/agent.db
-      - name: Process offline event fixture
-        if: github.event_name == 'workflow_dispatch'
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          AGENT_GITHUB_TOKEN: ${{ secrets.AGENT_GITHUB_TOKEN }}
+          AGENT_MAX_RUN_COST_USD: "0.25"
         run: >-
-          agentic-triage intake --event "${{ inputs.event_file }}"
-          --database data/agent.db --no-github
+          agentic-triage run-github
+          --event "$GITHUB_EVENT_PATH"
+          --database data/agent.db
+          --report data/run-report.json
+      - name: Upload sanitized run report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: agent-run-${{ github.event.issue.number }}-${{ github.run_id }}
+          path: data/run-report.json
+          if-no-files-found: warn
+          retention-days: 7

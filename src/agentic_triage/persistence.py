@@ -56,6 +56,18 @@ class SQLiteRepository:
                     INSERT INTO memory_search(rowid, symptoms, root_cause, fix_pattern)
                     VALUES (new.id, new.symptoms, new.root_cause, new.fix_pattern);
                 END;
+
+                CREATE TRIGGER IF NOT EXISTS memories_au AFTER UPDATE ON memories BEGIN
+                    INSERT INTO memory_search(
+                        memory_search, rowid, symptoms, root_cause, fix_pattern
+                    )
+                    VALUES (
+                        'delete', old.id, old.symptoms, old.root_cause,
+                        old.fix_pattern
+                    );
+                    INSERT INTO memory_search(rowid, symptoms, root_cause, fix_pattern)
+                    VALUES (new.id, new.symptoms, new.root_cause, new.fix_pattern);
+                END;
                 """
             )
 
@@ -104,6 +116,37 @@ class SQLiteRepository:
             raise ValueError("Cannot record memory without a diagnosis")
 
         with self._connect() as connection:
+            existing = connection.execute(
+                "SELECT id FROM memories WHERE run_id = ?",
+                (state.run_id,),
+            ).fetchone()
+            if existing is not None:
+                connection.execute(
+                    """
+                    UPDATE memories SET
+                        commit_sha = ?,
+                        symptoms = ?,
+                        root_cause = ?,
+                        files_json = ?,
+                        fix_pattern = ?,
+                        tests_json = ?,
+                        outcome = ?,
+                        created_at = ?
+                    WHERE id = ?
+                    """,
+                    (
+                        state.commit_sha,
+                        symptoms,
+                        state.diagnosis.root_cause,
+                        json.dumps(state.diagnosis.supporting_files),
+                        fix_pattern,
+                        json.dumps(tests),
+                        outcome,
+                        state.updated_at.isoformat(),
+                        int(existing["id"]),
+                    ),
+                )
+                return int(existing["id"])
             cursor = connection.execute(
                 """
                 INSERT INTO memories (

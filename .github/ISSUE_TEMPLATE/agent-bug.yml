@@ -3,12 +3,12 @@ description: Report a reproducible bug for the triage and repair agent
 title: "[Bug] "
 labels:
   - bug
-  - agent:triage
 body:
   - type: markdown
     attributes:
       value: |
-        Provide deterministic evidence where possible. The agent will reproduce the issue before changing code.
+        Provide deterministic evidence where possible. A maintainer starts the
+        agent by adding the `agent:triage` label after reviewing the report.
   - type: textarea
     id: summary
     attributes:

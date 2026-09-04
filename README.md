@@ -11,7 +11,14 @@ The implementation emphasizes:
 - SQLite-backed run history, searchable episodic memory, and metrics
 - GitHub issues and pull requests as the developer-facing workflow
 
-See [`PLAN.md`](PLAN.md) for the complete architecture and evaluation mapping.
+Submission material:
+
+- [`docs/SUBMISSION.md`](docs/SUBMISSION.md) — required 1–2 page write-up
+- [`docs/RESULTS.md`](docs/RESULTS.md) — measured runs, tokens, cost, and memory
+- [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) — clean-checkout and live demo steps
+- [`docs/VIDEO_WALKTHROUGH.md`](docs/VIDEO_WALKTHROUGH.md) — timed 5–10 minute script
+- [`docs/architecture.excalidraw`](docs/architecture.excalidraw) — editable architecture diagram
+- [`PLAN.md`](PLAN.md) — complete implementation and evaluation plan
 
 ## Repository layout
 
@@ -20,6 +27,8 @@ See [`PLAN.md`](PLAN.md) for the complete architecture and evaluation mapping.
 | `src/agentic_triage/` | Python agent state machine, policies, persistence, budgets, and safe tools |
 | `tests/` | Agent unit and integration-style workflow tests |
 | `target-app/` | MIT-licensed React/Express/Sequelize RealWorld application used for bug demonstrations |
+| `demo/` | Repeatable bug patches and offline GitHub event fixtures |
+| `docs/` | Submission brief, measured evidence, architecture, runbook, and video script |
 
 ## Agent development
 
@@ -31,6 +40,29 @@ python -m pytest
 ```
 
 The deterministic core and mocked tests do not require an Anthropic API key.
+
+## Hosted GitHub workflow
+
+The complete hosted workflow starts only when the repository owner adds the
+`agent:triage` label to an issue. Configure these encrypted repository Actions
+secrets:
+
+- `ANTHROPIC_API_KEY`
+- `AGENT_GITHUB_TOKEN`, using a repository-scoped fine-grained token with
+  Contents, Issues, and Pull requests read/write
+
+The workflow uses Haiku by default, enforces a $0.25 run limit, strips secrets
+from test subprocess environments, restricts edits to `target-app`, reruns the
+exact reproduction plus the complete target-app test suite, and opens a
+reviewable PR or posts a human escalation. It never merges.
+
+For seeded demonstrations, include a trusted metadata line in the issue:
+
+```text
+Agent base branch: `demo/live-backend-bug`
+```
+
+See [`docs/DEMO_RUNBOOK.md`](docs/DEMO_RUNBOOK.md) for the complete procedure.
 
 ## Target application
 

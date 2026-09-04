@@ -39,6 +39,19 @@ class GitHubClient:
             json={"labels": labels},
         )
 
+    def remove_label(self, issue_number: int, label: str) -> None:
+        encoded_label = quote(label, safe="")
+        response = self.client.request(
+            "DELETE",
+            f"/repos/{self.repository}/issues/{issue_number}/labels/{encoded_label}",
+        )
+        if response.status_code in {200, 204, 404}:
+            return
+        raise GitHubAPIError(
+            f"GitHub label removal failed with {response.status_code}: "
+            f"{response.text}"
+        )
+
     def ensure_label(
         self,
         name: str,

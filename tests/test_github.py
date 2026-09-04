@@ -142,3 +142,20 @@ def test_find_issue_ignores_pull_requests() -> None:
     )
 
     assert client.find_issue_by_title("Bug")["number"] == 2
+
+
+def test_remove_label_treats_missing_label_as_success() -> None:
+    def handler(request: httpx.Request) -> httpx.Response:
+        assert request.method == "DELETE"
+        return httpx.Response(404, json={"message": "Label does not exist"})
+
+    client = GitHubClient(
+        repository="example/repo",
+        token="test-token",
+        client=httpx.Client(
+            transport=httpx.MockTransport(handler),
+            base_url="https://api.github.test",
+        ),
+    )
+
+    client.remove_label(12, "agent:running")

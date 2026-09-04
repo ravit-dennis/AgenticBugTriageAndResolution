@@ -80,3 +80,24 @@ def test_rejects_non_unique_text_edit(repository_root) -> None:
 
     with pytest.raises(ToolPolicyError, match="found 2"):
         tools.apply_edits([("duplicates.txt", "same", "changed")])
+
+
+def test_rejects_edit_outside_configured_root(repository_root) -> None:
+    tools = RepositoryTools(repository_root, editable_roots=("src",))
+    path = repository_root / "outside.txt"
+    path.write_text("old", encoding="utf-8")
+
+    with pytest.raises(ToolPolicyError, match="outside configured"):
+        tools.apply_edits([("outside.txt", "old", "new")])
+
+
+def test_subprocess_environment_excludes_secrets(monkeypatch) -> None:
+    monkeypatch.setenv("ANTHROPIC_API_KEY", "secret")
+    monkeypatch.setenv("AGENT_GITHUB_TOKEN", "token")
+    monkeypatch.setenv("PATH", "safe-path")
+
+    environment = RepositoryTools._safe_subprocess_environment()
+
+    assert environment["PATH"] == "safe-path"
+    assert "ANTHROPIC_API_KEY" not in environment
+    assert "AGENT_GITHUB_TOKEN" not in environment

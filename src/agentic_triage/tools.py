@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import hashlib
+import os
 import re
 import shutil
 import subprocess
@@ -42,12 +43,16 @@ class RepositoryTools:
         root: str | Path,
         *,
         allowed_commands: frozenset[str] | None = None,
+        editable_roots: tuple[str, ...] = (".",),
         max_output_chars: int = 20_000,
     ) -> None:
         self.root = Path(root).resolve()
         commands = allowed_commands or self.DEFAULT_ALLOWED_COMMANDS
         self.allowed_commands = frozenset(
             Path(command).name.lower() for command in commands
+        )
+        self.editable_roots = tuple(
+            self._resolve_editable_root(path) for path in editable_roots
         )
         self.max_output_chars = max_output_chars
 
@@ -108,6 +113,7 @@ class RepositoryTools:
         completed = subprocess.run(
             [resolved_executable, *command[1:]],
             cwd=self.root,
+            env=self._safe_subprocess_environment(),
             capture_output=True,
             text=True,
             encoding="utf-8",
@@ -161,6 +167,7 @@ class RepositoryTools:
         updated_files: dict[Path, str] = {}
         for relative_path, old_text, new_text in edits:
             path = self._resolve(relative_path)
+            self._validate_edit_path(path)
             content = updated_files.get(
                 path,
                 path.read_text(encoding="utf-8"),
@@ -182,6 +189,50 @@ class RepositoryTools:
         if not path.exists():
             raise FileNotFoundError(path)
         return path
+
+    def _resolve_editable_root(self, relative_path: str) -> Path:
+        path = (self.root / relative_path).resolve()
+        if path != self.root and self.root not in path.parents:
+            raise ToolPolicyError("Editable root escapes repository root")
+        return path
+
+    def _validate_edit_path(self, path: Path) -> None:
+        if not any(
+            path == editable_root or editable_root in path.parents
+            for editable_root in self.editable_roots
+        ):
+            raise ToolPolicyError("Edit path is outside configured editable roots")
+
+    @staticmethod
+    def _safe_subprocess_environment() -> dict[str, str]:
+        allowed = {
+            "CI",
+            "COMSPEC",
+            "HOME",
+            "HOMEDRIVE",
+            "HOMEPATH",
+            "LANG",
+            "LC_ALL",
+            "LOCALAPPDATA",
+            "NODE_OPTIONS",
+            "NPM_CONFIG_CACHE",
+            "PATH",
+            "PATHEXT",
+            "PROGRAMDATA",
+            "PROGRAMFILES",
+            "PROGRAMFILES(X86)",
+            "SYSTEMDRIVE",
+            "SYSTEMROOT",
+            "TEMP",
+            "TMP",
+            "USERPROFILE",
+            "WINDIR",
+        }
+        return {
+            key: value
+            for key, value in os.environ.items()
+            if key.upper() in allowed
+        }
 
     def _is_excluded(self, path: Path) -> bool:
         excluded_parts = {
@@ -209,6 +260,7 @@ class RepositoryTools:
         path = (self.root / relative_path).resolve()
         if path != self.root and self.root not in path.parents:
             raise ToolPolicyError("Patch path escapes repository root")
+        self._validate_edit_path(path)
 
     @staticmethod
     def _normalize_patch(patch: str) -> str:

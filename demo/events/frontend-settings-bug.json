@@ -3,7 +3,7 @@
   "issue": {
     "number": 102,
     "title": "[Frontend] Settings submit button disappears after a failed update",
-    "body": "## Summary\nWhen saving settings fails, the Update Settings button remains hidden and the user cannot retry without editing a field or reloading.\n\n## Reproduction steps\n1. Apply demo/bugs/frontend-settings.patch.\n2. Run `Set-Location target-app; npm test -- --run frontend/src/components/SettingsForm/SettingsForm.test.jsx`.\n3. Observe that the retry button cannot be found after the rejected request.\n\n## Expected behavior\nThe Update Settings button becomes available again after a failed request.\n\n## Actual behavior\nThe button remains hidden.\n\n## Environment\nLocal target app test suite.",
+    "body": "## Summary\nWhen saving settings fails, the Update Settings button remains hidden and the user cannot retry without editing a field or reloading.\n\nAgent base branch: `demo/live-frontend-bug`\n\n## Reproduction steps\nRun `Set-Location target-app; npm test -- --run frontend/src/components/SettingsForm/SettingsForm.test.jsx` and observe that the retry button cannot be found after the rejected request.\n\n## Expected behavior\nThe Update Settings button becomes available again after a failed request.\n\n## Actual behavior\nThe button remains hidden.\n\n## Environment\nLocal target app test suite.",
     "labels": [
       {
         "name": "bug"

@@ -1,10 +1,13 @@
-# Agentic Bug Triage and Resolution - Implementation Plan
+# Agentic Bug Triage and Resolution - Final Implementation Plan and Record
 
 ## 1. Goal
 
-Build a working agentic workflow that responds to GitHub bug issues, reproduces the reported behavior, finds the relevant code, diagnoses the root cause, classifies severity and risk, implements a safe fix, runs validation, and opens a pull request with evidence.
+The implemented system responds to qualified GitHub bug issues, gathers bounded
+repository context, reproduces the reported behavior, diagnoses and classifies
+the root cause, repairs safe defects, validates the unchanged reproduction, and
+either opens a reviewable pull request or requests a decision from a maintainer.
 
-The submission will optimize for the evaluation criteria in the assignment:
+The delivered submission is aligned to the assignment's evaluation criteria:
 
 1. End-to-end functionality
 2. Appropriate autonomy
@@ -17,20 +20,23 @@ The submission will optimize for the evaluation criteria in the assignment:
 
 ### Target application
 
-Use [`TonyMckes/conduit-realworld-example-app`](https://github.com/TonyMckes/conduit-realworld-example-app) as the target application and import it into this repository under `target-app/`.
+The target application is
+[`TonyMckes/conduit-realworld-example-app`](https://github.com/TonyMckes/conduit-realworld-example-app),
+imported under `target-app/` with its MIT license and upstream attribution.
 
 Why:
 
 - It is an established open-source RealWorld application rather than a toy built for this task.
-- It contains a React frontend, Express backend, Sequelize data layer, and PostgreSQL database.
+- It contains a React frontend, Express backend, and Sequelize data layer.
+- SQLite is the zero-provisioning development and demonstration database;
+  PostgreSQL remains supported through environment configuration.
 - It is materially smaller and faster to understand than Vikunja, improving the chance of a polished 48-hour submission.
 - Its JavaScript stack allows one test/tooling ecosystem across the target application while keeping the agent implementation separate.
 
-Before importing it, confirm its license and preserve the upstream attribution and license files.
-
 ### Agent implementation
 
-Use Python, the Anthropic SDK, Pydantic models, and an explicit typed state machine rather than a large orchestration framework.
+The agent uses Python, the Anthropic SDK, Pydantic models, and an explicit typed
+state machine rather than a large orchestration framework.
 
 Why:
 
@@ -55,10 +61,10 @@ Why:
 - Do not optimize for broad autonomous coding. Optimize for reliable, bounded repair of reproducible bugs.
 - Prefer deterministic repository tools and tests over model calls whenever they can answer the question.
 
-## 3. Proposed Architecture
+## 3. Delivered Architecture
 
 ```text
-GitHub issue opened/labeled
+GitHub issue receives a trusted action label
           |
           v
 GitHub Actions workflow
@@ -97,11 +103,14 @@ Python agent orchestrator
 | `memory` | Persist and retrieve prior bug symptoms, code areas, fixes, tests, and outcomes |
 | `metrics` | Timing, success, cost, intervention, retries, and outcome reporting |
 
-All model responses that drive actions will use validated structured schemas. Invalid responses will produce a visible failed state or bounded retry rather than a silent fallback.
+All model responses that drive actions use validated structured schemas.
+Invalid responses produce a visible failed state or bounded retry rather than a
+silent fallback.
 
 ### Agent tool contracts
 
-Expose a small, auditable tool surface rather than placing the repository into prompts:
+The implementation exposes a small, auditable tool surface rather than placing
+the repository into prompts:
 
 | Tool | Contract |
 |---|---|
@@ -117,7 +126,8 @@ The operating instruction is: search first, read only relevant ranges, edit narr
 
 ### Compact stage state
 
-Persist a structured state object instead of repeatedly resending the full conversation:
+The agent persists a structured state object instead of repeatedly resending
+the full conversation:
 
 ```json
 {
@@ -131,7 +141,8 @@ Persist a structured state object instead of repeatedly resending the full conve
   "confidence": 0,
   "repair_attempt": 0,
   "validation": null,
-  "budget": {}
+  "budget": {},
+  "human_action": "agent:triage"
 }
 ```
 
@@ -141,7 +152,10 @@ Each model call receives only the state fields, code ranges, command summaries, 
 
 ### 4.1 Intake
 
-- Trigger only for issues labeled `agent:triage` or created from the provided bug template.
+- A trusted collaborator with Triage-or-higher permission starts a run by
+  applying `agent:triage`.
+- After escalation, one-shot labels select `agent:retry`,
+  `agent:investigation-only`, `agent:approve-draft`, or `agent:declined`.
 - Capture title, description, reproduction steps, expected behavior, actual behavior, logs, environment, and attachments.
 - Validate minimum information and post a concise request for missing blocking evidence.
 - Add a run identifier and `agent:running` label to prevent duplicate work.
@@ -155,7 +169,10 @@ Each model call receives only the state fields, code ranges, command summaries, 
 
 ### 4.3 Reproduction
 
-- Start the target app and required PostgreSQL service through Docker Compose.
+- Use the target application's local SQLite configuration, with no provisioned
+  database service required for the demonstrated bugs.
+- Accept only exact allowlisted npm/Vitest reproduction commands for test files
+  under `target-app`.
 - Translate issue steps into a failing automated test whenever feasible.
 - Prefer a test that fails on the buggy revision and passes after the repair.
 - If automated reproduction is impossible, capture command output, logs, screenshots, or API evidence and lower confidence.
@@ -175,7 +192,10 @@ Produce a structured triage result containing:
 - Proposed owner/labels
 - Change risk and recommended autonomy level
 
-Post a concise GitHub issue comment with evidence and next action rather than raw chain-of-thought or noisy logs.
+Post a concise GitHub issue comment with the exact command, bounded observed
+output, expected behavior, output fingerprint, diagnosis, supporting files,
+safety flags, cost, workflow/artifact link, and next actions rather than raw
+chain-of-thought or unbounded logs.
 
 ### 4.5 Autonomy and human-in-the-loop
 
@@ -187,10 +207,12 @@ Post a concise GitHub issue comment with evidence and next action rather than ra
 | Reproduction or validation fails after bounded retries | Escalate with evidence, hypotheses tried, and the smallest useful next action |
 
 Escalation comments present decision labels for retry, read-only investigation,
-bounded draft approval, or decline. Draft approval cannot override failed
-reproduction, high risk, security sensitivity, destructive behavior, or
-migration requirements. The agent will never merge its own PR. GitHub branch
-protection and required checks remain the final control.
+bounded draft approval, or decline. `agent:investigation-only` never edits.
+`agent:declined` records the decision without an Anthropic call or target-app
+command. Draft approval cannot override failed reproduction, high risk,
+security sensitivity, destructive behavior, or migration requirements, and any
+approved repair is opened as a GitHub draft PR. The agent never merges its own
+PR.
 
 ### 4.6 Repair
 
@@ -205,7 +227,7 @@ protection and required checks remain the final control.
 
 ### 4.7 Pull request
 
-The generated PR will include:
+Generated pull requests include:
 
 - Linked issue
 - Reproduction evidence
@@ -231,7 +253,7 @@ Use a local SQLite database with FTS5 rather than a paid vector service.
 
 ### Long-term episodic memory
 
-For completed runs, store:
+For completed local runs, the system stores:
 
 - Symptom and normalized issue summary
 - Reproduction method
@@ -240,11 +262,17 @@ For completed runs, store:
 - Patch summary and regression tests
 - Final outcome, review feedback, and time/cost metrics
 
-Before diagnosing a new issue, retrieve prior memories using FTS over symptoms, components, errors, routes, and file paths. Reuse prior knowledge only as supporting context; verify it against the current revision before acting.
+Before diagnosing a new issue, the agent retrieves prior memories using FTS5
+over symptoms, components, errors, routes, and file paths. Prior knowledge is
+supporting context and is revalidated against the current revision. Hosted
+GitHub jobs currently use ephemeral SQLite; durable hosted memory is part of
+the one-month roadmap.
 
 ### Demonstrating learning
 
-The second seeded bug will deliberately overlap a component, test pattern, or repository area learned during the first run. The demo will show:
+The frontend demonstration retrieved memory episode `1` from the earlier
+backend run while still searching and validating the current source. The
+evidence records:
 
 - Which prior memory was retrieved
 - How it reduced context discovery or model calls
@@ -300,61 +328,66 @@ Store these as configurable defaults rather than scattering constants through th
 | Output per model call | 2,000 tokens |
 | Changed files before approval is required | 6 |
 | Changed lines before approval is required | 400 |
+| Hosted model cost per run | $0.25 |
 
-Tests, generated snapshots, and lockfile changes will be reported separately when evaluating patch size. Limits can be overridden through reviewed configuration, and every override will be recorded in the run report.
+Model-generated edits are restricted to target-application implementation
+files. Tests, package manifests, lockfiles, workflows, and test configuration
+cannot be modified by the model. The hosted report records every model tier,
+token count, cost, attempt, selected context, changed file, human action, and
+publication outcome.
 
 ## 7. GitHub Integration
 
 Use this repository, `ravit-dennis/AgenticBugTriageAndResolution`, for the submission, issue tracking, seeded bug demonstrations, and generated repair PRs.
 
-Planned GitHub assets:
+Delivered GitHub assets and controls:
 
-- Bug report issue form with reproducibility fields
-- Labels for agent state, severity, confidence, risk, component, and escalation
-- GitHub Actions issue trigger
-- Manual `workflow_dispatch` trigger for repeatable demos
-- Check summaries and uploaded diagnostic artifacts
-- Issue comments for state changes and human approvals
-- Generated branches and pull requests linked to issues
-- Branch protection guidance so the agent cannot self-merge
-
-Live GitHub write operations will be tested first against dedicated demo issues and branches.
+- Issue-label-triggered GitHub Actions workflow
+- Trusted maintainer activation through GitHub label permissions
+- Running, resolved, failed, escalation, retry, investigation, approval, and
+  decline labels
+- Stable issue branches and linked pull requests
+- Evidence-rich marker-based issue comments
+- Seven-day sanitized run-report artifacts
+- Exact trusted base-branch allowlist for `main` and seeded demo branches
+- No persisted checkout credentials, force-pushes, or self-merge
+- Secret-free test subprocesses and isolated Git global/system configuration
+  during authenticated pushes
+- Safe handling for existing branches, existing PRs, partial publication, and
+  duplicate delivery
 
 ## 8. Seeded Demonstration Bugs
 
-Introduce at least two realistic, independently reproducible defects:
+The repository contains two realistic, independently reproducible defects and
+one high-risk HITL scenario:
 
 ### Backend bug
 
-A data-validation, authorization, query, or API behavior defect that:
-
-- Produces a clear failing API/integration test
-- Requires tracing from route/controller to service/model/database behavior
-- Is safe for the agent to fix autonomously
+The backend pagination bug applies the requested offset incorrectly. It is
+reproduced by `backend/helper/pagination.test.js`, repaired in one source file,
+and validated by the unchanged reproduction plus the complete target-app suite.
 
 ### Frontend bug
 
-A state, rendering, form-validation, routing, or API-integration defect that:
+The frontend settings form fails to restore submission state after a rejected
+request. It is reproduced by the component test, repaired with a localized
+state reset, and validated by the unchanged reproduction and full suite.
 
-- Produces a clear failing component or end-to-end test
-- Requires identifying the responsible component and state/data flow
-- Is safe for the agent to fix autonomously or through a draft PR
-
-Keep bug-introduction patches/scripts separate and repeatable so the demo can reset and replay both scenarios. Do not rely on undocumented manual corruption of the repository.
+The HITL issue describes production-only account-deletion data loss that is not
+reproducible locally and may require a destructive migration. The agent
+correctly stops with high risk, low confidence, no changed files, and no repair
+branch. Repeatable seeded and replay branches preserve all three scenarios.
 
 ## 9. Testing Strategy
 
 ### Agent unit tests
 
-- Workflow transitions and terminal outcomes
-- Severity/risk/autonomy policy
-- Haiku/Sonnet/Opus routing rules
-- Token and dollar budget enforcement
-- Structured model response validation
-- Context selection and truncation
-- Memory write/retrieval and commit-SHA validation
-- Command allowlist, timeouts, and output limits
-- GitHub event parsing and idempotency
+- 82 Python tests cover workflow transitions, terminal outcomes, model routing,
+  budget enforcement, response validation, context limits, memory, command and
+  edit policy, GitHub integration, publication safety, and HITL decisions.
+- Approval tests prove medium-risk work pauses before editing, approved work
+  remains draft-only, investigation never repairs, decline avoids model spend,
+  and hard safety blockers cannot be overridden.
 
 ### Agent integration tests
 
@@ -365,18 +398,18 @@ Keep bug-introduction patches/scripts separate and repeatable so the demo can re
 
 ### Target application tests
 
-- Existing frontend and backend tests remain green
-- One regression test per seeded bug
-- Failing-before/passing-after evidence
-- API/integration and frontend component or end-to-end coverage
+- 15 frontend and backend tests pass.
+- Each seeded defect has deterministic failing-before/passing-after evidence.
+- The frontend production build passes.
 
 ### End-to-end tests
 
-- GitHub issue to triage comment
-- Issue to autonomous low-risk repair PR
-- Issue to human-approval escalation
-- Repeated webhook/event delivery does not create duplicate runs or PRs
-- Memory from bug 1 is retrieved and measured during bug 2
+- Hosted backend issue to validated PR
+- Hosted frontend issue to validated PR
+- Hosted high-risk issue to evidence-rich human escalation
+- Hosted `agent:retry` decision with zero changed files and no branch
+- Duplicate and existing-PR behavior without duplicate publication
+- Memory from bug 1 retrieved and measured during bug 2
 
 ## 10. Measurement
 
@@ -399,100 +432,106 @@ Track per run:
 
 Primary business metric: reduce median engineer time spent from bug intake to a validated repair candidate without increasing escaped regressions.
 
-## 11. Delivery Phases
+## 11. Delivery Record
 
-### 48-hour allocation
+### Original 48-hour allocation and outcome
 
 | Timebox | Outcome |
 |---|---|
-| Hours 0-6 | Target app runs locally; license, setup, tests, and bug candidates are understood |
-| Hours 6-16 | Typed workflow, safe tools, persistence, model adapter, and core tests work locally |
-| Hours 16-26 | First seeded bug completes the failing-before/passing-after repair loop |
-| Hours 26-34 | Workflow is generalized for the second bug; memory reuse is demonstrated |
-| Hours 34-40 | GitHub issue/PR integration, HITL gates, metrics, and failure paths are complete |
-| Hours 40-48 | Clean-checkout rehearsal, documentation, write-up, video preparation, and contingency buffer |
+| Hours 0-6 | Imported and ran the licensed target app; selected deterministic backend and frontend defects |
+| Hours 6-16 | Implemented typed state, safe tools, SQLite persistence, Anthropic adapter, and core tests |
+| Hours 16-26 | Completed the backend failing-before/passing-after repair loop |
+| Hours 26-34 | Completed the frontend loop and demonstrated memory retrieval |
+| Hours 34-40 | Added and hardened GitHub issue-to-PR automation, metrics, budgets, and HITL controls |
+| Hours 40-48 | Completed hosted demonstrations, CI, security review, runbook, architecture, write-up, and video script |
 
-If the schedule slips, preserve the working end-to-end workflow, tests, GitHub integration, metrics, and video. Cut optional integrations and architectural expansion first.
-
-### Phase 1 - Foundation
-
-- Import and run the target application
-- Preserve license and upstream attribution
-- Establish Docker-based local environment
-- Inventory existing tests and commands
-- Add Python project structure, configuration, and baseline CI
-- Define workflow state and structured domain models
-
-### Phase 2 - Deterministic agent core
-
-- Implement GitHub event parsing and idempotent run creation
-- Implement isolated workspace and safe command runner
-- Implement repository mapping and lexical context retrieval
-- Implement state machine, run persistence, logs, and metrics
-- Add unit and integration tests
-
-### Phase 3 - LLM reasoning and controls
-
-- Integrate Anthropic through a testable adapter
-- Add structured Haiku prompts and response validation
-- Add Sonnet escalation and disabled-by-default Opus path
-- Enforce budget, retry, patch-size, and risk limits
-- Add memory write/retrieval
-
-### Phase 4 - Repair and GitHub workflow
-
-- Implement reproduction, diagnosis, repair, and validation stages
-- Add issue comments, labels, branches, checks, artifacts, and PR creation
-- Add approval/escalation mechanism
-- Add GitHub Actions trigger and manual demo workflow
-
-### Phase 5 - Seeded bugs and end-to-end proof
-
-- Introduce repeatable backend bug
-- Create GitHub issue and run the complete workflow
-- Preserve generated triage evidence and repair PR
-- Introduce repeatable frontend bug with a memory overlap
-- Run the workflow and compare time/cost/context metrics
-- Add an explicit high-risk escalation demonstration
-
-### Phase 6 - Submission polish
-
-- Harden setup instructions and one-command demo path
-- Add architecture diagram and operational runbook
-- Prepare 1-2 page write-up:
-  - What was built
-  - Architecture and design decisions
-  - Autonomy and safety choices
-  - Measurement and observed results
-  - What would change with one month
-- Prepare a 5-10 minute live walkthrough script
-- Rehearse from a clean checkout with a fresh issue
+All six phases are complete. Optional Slack integration was intentionally
+excluded so effort remained focused on the required GitHub workflow,
+reproducibility, safety, measurement, and demonstration quality.
 
 ## 12. Evaluation Coverage
 
-| Evaluation area | Evidence to provide |
+| Evaluation area | Delivered evidence |
 |---|---|
-| Functionality | Two live issue-to-triage-to-repair-PR demonstrations |
-| Autonomy | Policy-driven low-risk automatic repair and bounded retries |
-| Human-in-the-loop | Draft PR/approval gates and explicit high-risk escalation |
-| Measurement | Run dashboard/report with time, success, memory, and cost metrics |
-| Context and memory | Explainable retrieval plus bug 1 to bug 2 improvement |
-| Taste | Concise issue comments, review-ready PRs, low notification noise, clear failure states |
+| Functionality | Hosted backend issue #7 produced PR #10; hosted frontend issue #8 produced PR #11 |
+| Autonomy | Reproduction-first low-risk repair, two-attempt limit, patch limits, and no self-merge |
+| Human-in-the-loop | Issue #6 shows decision-ready evidence, explicit action labels, and non-overridable safety gates |
+| Measurement | Sanitized reports record elapsed time, model tiers, tokens, cost, attempts, context, memory, actions, and publication |
+| Context and memory | Bounded search/read context and retrieval of local memory episode `1` during the frontend run |
+| Taste | Localized one-file repairs, exact validation evidence, concise GitHub UX, clear recovery states, and $0.25 run cap |
 
-## 13. Definition of Done
+## 13. Measured Final Evidence
 
-- A fresh GitHub bug issue can trigger the workflow.
-- The agent can reproduce, diagnose, classify, and route the issue.
-- A safe bug produces a tested PR with a regression test.
-- A risky or uncertain bug stops at a clear human decision point.
-- Backend and frontend seeded bugs are demonstrated end to end.
-- Haiku is the default and escalation/cost decisions are visible.
-- Context and memory improve or inform the second run with measured evidence.
-- Tests cover success, failure, retry, budget, idempotency, and escalation paths.
-- Setup and demo work from a clean checkout without undocumented steps.
-- The repository contains the short write-up and video walkthrough guidance required by the assignment.
+| Hosted issue | Outcome | Elapsed | Input | Output | Cost | Publication |
+|---|---|---:|---:|---:|---:|---|
+| `ravit-dennis/AgenticBugTriageAndResolution#7` | Backend repair | 19.246s | 6,103 | 493 | $0.008568 | PR #10 |
+| `ravit-dennis/AgenticBugTriageAndResolution#8` | Frontend repair | 19.997s | 10,599 | 732 | $0.014259 | PR #11 |
+| `ravit-dennis/AgenticBugTriageAndResolution#6` | Initial escalation | 8.936s | 1,913 | 228 | $0.003053 | No branch or PR |
+| `ravit-dennis/AgenticBugTriageAndResolution#6` | Decision-ready retry | 11.212s | 1,925 | 221 | $0.003030 | No branch or PR |
 
-## 14. Inputs Needed During Implementation
+The two successful repairs used Haiku only, required one repair attempt, changed
+one implementation file each, and passed the unchanged reproduction plus all
+15 target-app tests. The final repository passes 82 Python tests, all target-app
+tests, and the frontend production build. Total measured Anthropic spend,
+including development, connectivity, and hosted runs, is $0.145044.
 
-- The Anthropic API key only when live model integration begins; it will be configured as `ANTHROPIC_API_KEY` and never written to a tracked file.
-- GitHub authentication with permission to create labels, comments, branches, and pull requests in this repository.
+## 14. Definition of Done
+
+- [x] A fresh GitHub bug issue can trigger the workflow.
+- [x] The agent can reproduce, diagnose, classify, and route the issue.
+- [x] A safe bug produces a tested PR with a regression test.
+- [x] A risky or uncertain bug stops at a clear human decision point.
+- [x] Backend and frontend seeded bugs are demonstrated end to end.
+- [x] Haiku is the default and escalation/cost decisions are visible.
+- [x] Context and memory inform the second run with measured evidence.
+- [x] Tests cover success, failure, retry, budget, idempotency, publication
+  safety, and all HITL paths.
+- [x] Setup and replay instructions work from a clean checkout.
+- [x] The repository contains the required submission brief, architecture,
+  results, runbook, and video walkthrough.
+
+## 15. One-Month Product Roadmap
+
+### Installable GitHub App
+
+- Move execution outside the target repository into an installable GitHub App.
+- Use least-privilege repository permissions and short-lived installation
+  tokens instead of personal access tokens.
+- Add a hosted control plane for webhook verification, maintainer
+  authorization, queues, checks, quotas, auditing, and tenant isolation.
+
+### Safe support for many repositories
+
+- Discover languages, package managers, test frameworks, services, ownership,
+  and application boundaries during onboarding.
+- Require a reviewed repository profile defining trusted setup, reproduction,
+  test, and build commands; editable paths; required services; secrets; network
+  policy; and risk rules.
+- Add normalized stack adapters for Node.js, Python, Go, Java, and .NET.
+- Pilot on a larger application such as Vikunja without assuming arbitrary
+  repositories are safe to execute without onboarding.
+
+### Isolated reproduction and validation
+
+- Run every investigation in a fresh ephemeral container or short-lived VM
+  created from a trusted base image.
+- Start profile-declared dependencies such as PostgreSQL and Redis, including
+  reviewed Docker Compose or dev-container definitions for multi-service apps.
+- Enforce CPU, memory, timeout, filesystem, process, and network-egress limits.
+- Inject only stage-specific short-lived secrets, retain sanitized evidence,
+  and destroy the environment after every run.
+- Keep GitHub credentials and the control plane outside untrusted target code.
+
+### Durable production operation
+
+- Replace ephemeral artifacts and local SQLite with tenant-isolated workflow,
+  evidence, metrics, and versioned memory services.
+- Combine lexical, symbol, dependency, ownership, and change-history retrieval.
+- Add CODEOWNERS routing, branch protection, configurable approvals, deployment
+  and rollback evidence, cost quotas, kill switches, and operational
+  observability.
+- Calibrate autonomy thresholds from accepted, edited, and rejected PRs in a
+  controlled pilot and evaluate time, quality, security, and cost against a
+  manual-triage cohort.
+- Keep GitHub as the system of record; add Slack or Teams only as optional
+  notification surfaces.

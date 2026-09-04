@@ -73,9 +73,11 @@ diagram only to orient the viewer.
 ## 7:10–8:00 — Strategic next version
 
 - Briefly summarize the one-month plan from `docs/SUBMISSION.md`:
-  production pilot and threshold calibration, stronger ephemeral sandboxes,
-  durable evidence/memory services, dependency-aware context, CODEOWNERS,
-  deployment/rollback evidence, and a larger evaluation harness.
+  an installable least-privilege GitHub App, reviewed per-repository profiles
+  and language adapters, ephemeral container/VM reproduction with declared
+  services and strict resource/network isolation, durable tenant-isolated
+  evidence and memory, production governance, and threshold calibration from a
+  larger pilot.
 - Close with the design principle: economically bounded autonomy that proves
   the problem, makes the smallest safe change, verifies it, and knows when to
   involve a human.
